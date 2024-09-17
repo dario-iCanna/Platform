@@ -1,0 +1,69 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.suo
+*.ncb
+*.sdf
+*.opendb
+*.VC.db
+*.VC.opendb
+*.psess
+*.vsp
+*.vspscc
+*.vssscc
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]eleases/
+[Rr]eleasesPublic/
+[Aa]llBuild/
+[Bb]uild/
+[Bb]uildLog.htm
+[Ll]og/
+[Ll]ogs/
+[Ll]og/
+[Ll]og/
+[Ll]ogs/
+[Bb]uildLogs/
+*.dll
+*.exe
+*.obj
+*.lib
+*.pdb
+*.idb
+*.log
+
+# Uncomment if you have tasks that create the Release and/or Debug directories
+#Release/
+#Debug/
+# Release/
+# Debug/
+# *.pdb
+# *.idb
+
+# VS Code directories
+.vscode/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.suo
+*.ncb
+
+# Other files
+*.swp
+*.swo
+
+# Generated files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swp
+
+# Dependencies
+*.nuget/
