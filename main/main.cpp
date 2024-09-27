@@ -16,6 +16,7 @@ using namespace D2D1;
 int SCREEN_HEIGHT = 700;
 int SCREEN_WIDTH = 1500;
 int tempo = 0, score = 0;
+short levelNumber = 0;
 HRESULT p = CoInitialize(NULL);
 //factory direct 2d
 ID2D1Factory* pD2DFactory = NULL;
@@ -263,7 +264,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	wicDecoder->GetFrame(0, &wicFrame); // prende l'immagine
 	wicFactory->CreateFormatConverter(&wicConverter); // crea Converter
 	wicConverter->Initialize(wicFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom); // inizializza il converter
-	livSize = 1000;
+	livSize = 100;
 
 	// Allocazione dinamica della matrice
 	livello = new int* [livSize];
@@ -452,6 +453,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				player.immunity = player.initialImmunity;
 			movimentoPlayer(livello, initialLiv, BLOCK_SIZE, enemy, enemy.size(), SCREEN_WIDTH, livSize, initialArr, score, SCREEN_HEIGHT, tempo);
 			toggleEv();
+			if (player.r.left >= (livSize - 1)*BLOCK_SIZE) {
+				cout << levelNumber;
+				levelNumber++;
+				ripristino(enemy, enemy.size(), initialArr, livello, initialLiv, SCREEN_HEIGHT, BLOCK_SIZE, livSize);
+			}
 			//RedrawWindow(hW, NULL, NULL, RDW_INTERNALPAINT | RDW_UPDATENOW | RDW_INVALIDATE);
 			InvalidateRect(hW, NULL, TRUE);
 			UpdateWindow(hW);

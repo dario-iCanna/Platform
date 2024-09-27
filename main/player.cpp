@@ -13,7 +13,7 @@ struct gameStuff player = {
 	player.vel = 0,
 	player.acc = 0.1,
 	player.initialAcc = 1,
-	player.dec = 0.5,
+	player.dec = 0.7,
 	player.jmpDec = 0.5,
 	player.initialJmp = 9,
 	player.velMax = 5,
@@ -353,7 +353,7 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	movementY = 0;
 
 	//spostamento cam.posX
-	if (player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX > SCREEN_WIDTH/2) {
+	if (player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX > SCREEN_WIDTH/2 && cam.posX + SCREEN_WIDTH < (livSize)* BLOCK_SIZE) {
 		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH/2;
 	}
 
