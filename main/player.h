@@ -31,9 +31,9 @@ extern struct entity
 	double vel;
 	double jmpDec;
 	double jmpPow;
-	int state;
-	short type;
-	short fpa;
+	int state;//usato per collisioniNshit
+	short type;//0 per normal 1 per penso una sega 2 per cannone 3 per proiettile 4 per cuore
+	short fpa;//frame per azione
 	short iniFpa;
 };
 //stato del player

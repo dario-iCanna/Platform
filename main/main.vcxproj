@@ -144,9 +144,13 @@
   <ItemGroup>
     <Image Include="..\..\..\..\OneDrive\Desktop\idle.png" />
     <Image Include="sprites\cuori.png" />
+    <Image Include="sprites\enemy.png" />
     <Image Include="sprites\numeri.png" />
     <Image Include="sprites\sky.png" />
     <Image Include="sprites\terreno.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Livelli.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

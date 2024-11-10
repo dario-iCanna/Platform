@@ -1,6 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include <wincodec.h>
+#include <fstream>
 #include <d2d1.h>
 #include <iostream>
 #include <vector>
@@ -12,12 +13,11 @@ using namespace std;
 using namespace D2D1;
 
 #pragma region variabili globali
-#define BLOCK_SIZE 30
-int SCREEN_HEIGHT = 700;
-int SCREEN_WIDTH = 1500;
-int tempo = 0, score = 0;
-short levelNumber = 0;
-HRESULT p = CoInitialize(NULL);
+#define BLOCK_SIZE 30 // grandezza blocco
+int SCREEN_HEIGHT = 700; //altezza schermo
+int SCREEN_WIDTH = 1500; //larghezza schermo
+int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
+HRESULT p = CoInitialize(NULL);//funzione per tirare in ballo funzioni COM
 //factory direct 2d
 ID2D1Factory* pD2DFactory = NULL;
 HRESULT hr = D2D1CreateFactory(
@@ -26,23 +26,25 @@ HRESULT hr = D2D1CreateFactory(
 );
 //render per direct 2d
 ID2D1HwndRenderTarget* pRT = NULL;
-//array di beush?
+//array di beush? USATI ORA SOLO PER NEMICI
 ID2D1SolidColorBrush* terrainBrushes[4];
-//bitmap di prova
+//bitmap per immagini
 ID2D1Bitmap* playerBitmapIdle = NULL;
 ID2D1Bitmap* terrainBitmap = NULL;
 ID2D1Bitmap* numberBitmap = NULL;
 ID2D1Bitmap* cuoriBitmap = NULL;
 ID2D1Bitmap* skyBitmap = NULL;
+ID2D1Bitmap* enemyBitmap = NULL;
 //variabili WIC
 IWICImagingFactory* wicFactory = NULL;
 IWICBitmapDecoder* wicDecoder = NULL;
 IWICBitmapFrameDecode* wicFrame = NULL;
 IWICFormatConverter* wicConverter = NULL;
 
-int **livello, **initialLiv;
-int heightSize, livSize;
-vector<entity> enemy, initialArr;
+int ***livello, ***initialLiv, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
+int heightSize, livSize;//altezza livello e lunghezza livello
+
+vector<vector<entity>> enemy,initialArr; // array per i nemici
 #pragma endregion
 
 //variabili di funzionamento
@@ -50,7 +52,7 @@ struct WINDSTUFF {
 	bool running = true;
 	bool console = true;
 	const double MAX_FPS = 60;
-}wS;
+}wS; // variabili per il gameloop
 
  #pragma region gestione_eventi
 LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
@@ -107,7 +109,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		// disegno livello
 		for (int i = floor(cam.posX/BLOCK_SIZE); i < floor(cam.posX / BLOCK_SIZE) + 50 && i < livSize; i++) {
 			for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-				if (livello[i][j] != 0) {
+				if (livello[numeroLivello][i][j] != 0) {
 					pRT->DrawBitmap(terrainBitmap,
 						RectF(
 							i * BLOCK_SIZE - cam.posX,
@@ -115,15 +117,15 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							(i + 1) * BLOCK_SIZE - cam.posX,
 							(j + 1) * BLOCK_SIZE
 						),
-						1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30 * (livello[i][j] - 1), 0, 30 * livello[i][j], 30)
+						1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30 * (livello[numeroLivello][i][j] - 1), 0, 30 * livello[numeroLivello][i][j], 30)
 					);
 				}
 			}
 		}
 
 		//disegno enemy
-		for (int i = 0; i < enemy.size(); i++) {
-			entity e = enemy[i];
+		for (int i = 0; i < enemy[numeroLivello].size(); i++) {
+			entity e = enemy[numeroLivello][i];
 				pRT->DrawRectangle(
 					RectF(
 						e.r.left - cam.posX,
@@ -131,6 +133,25 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						e.r.right - cam.posX,
 						e.r.bottom),
 					terrainBrushes[3]);
+					switch (e.type) {
+					case 2:
+						break;
+					case 4://disegno il cuore nel powerup
+						pRT->DrawBitmap(cuoriBitmap, RectF(
+							e.r.left - cam.posX,
+							e.r.top,
+							e.r.right - cam.posX,
+							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30, 0, 60, 30));
+						break;
+					default:
+						pRT->DrawBitmap(enemyBitmap, RectF(
+							e.r.left - cam.posX,
+							e.r.top,
+							e.r.right - cam.posX,
+							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 30, 30));
+						break;
+					}
+				
 		}
 
 		//disegno tempo
@@ -257,24 +278,46 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 #pragma endregion 
 
 //funzione main
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
+	//creo la console
+	if (wS.console) {
+		AllocConsole();
+		FILE* fDummy;
+		freopen_s(&fDummy, "CONIN$", "r", stdin);
+		freopen_s(&fDummy, "CONOUT$", "w", stderr);
+		freopen_s(&fDummy, "CONOUT$", "w", stdout);
+		ios_base::sync_with_stdio;
+	}
+	//mi prendo il file da dove leggere i livelli
+	ifstream file;
+	file.open("Livelli.txt");
+
 	//roba per la bitmap di directD2
 	CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, (LPVOID*)&wicFactory); // factory WIC
 	wicFactory->CreateDecoderFromFilename(L"sprites/idle.png", NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wicDecoder); // Crea Decoder
 	wicDecoder->GetFrame(0, &wicFrame); // prende l'immagine
 	wicFactory->CreateFormatConverter(&wicConverter); // crea Converter
 	wicConverter->Initialize(wicFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom); // inizializza il converter
-	livSize = 100;
+	file >> quantitaLivelli >> livSize; // si fa cin con il file della lunghezza del livello
 
-	// Allocazione dinamica della matrice
-	livello = new int* [livSize];
-	initialLiv = new int* [livSize];
-	for (int i = 0; i < livSize; ++i) {
-		livello[i] = new int[SCREEN_HEIGHT / BLOCK_SIZE];
-		initialLiv[i] = new int[SCREEN_HEIGHT / BLOCK_SIZE];
+	//creo la grandezza giusta dell'array dei nemici
+	enemy.resize(quantitaLivelli);
+	initialArr.resize(quantitaLivelli);
+
+	// Allocazione dinamica della matrice si creano 2 livelli
+	livello = new int** [quantitaLivelli];
+	initialLiv = new int** [quantitaLivelli];
+	for (int i = 0; i < quantitaLivelli; i++) {
+		livello[i] = new int* [livSize];//inizializzazione livello
+		initialLiv[i] = new int* [livSize];//inizializzazione inizio livello
+		for (int j = 0; j < livSize; j++) {
+			livello[i][j] = new int[SCREEN_HEIGHT / BLOCK_SIZE];
+			initialLiv[i][j] = new int[SCREEN_HEIGHT / BLOCK_SIZE];
+		}
 	}
+	
 
-	enemy.push_back({
+	enemy[0].push_back({
 		{200, 300, 230, 330},  // r
 		-1,                  // vel
 		0.0,                   // jmpDec
@@ -285,7 +328,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		0					//variabile per la inizializzazione dei frame
 		});
 
-	enemy.push_back({
+	enemy[0].push_back({
+		{200, 300, 230, 330},  // r
+		0,                  // vel
+		0.0,                   // jmpDec
+		0,                    //jmpPow
+		 state::walking,        // state
+		4,					//type
+		0,					//frame per azione
+		0					//variabile per la inizializzazione dei frame
+		});
+
+	enemy[0].push_back({
 		{240, 300, 270, 330},  // r
 		-1,                  // vel
 		1.0,                   // jmpDec
@@ -296,7 +350,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		0					//variabile per la inizializzazione dei frame
 		});
 
-	enemy.push_back({
+	enemy[0].push_back({
 		{9*BLOCK_SIZE, 13*BLOCK_SIZE, 10*BLOCK_SIZE, 14*BLOCK_SIZE},  // r
 		0,                  // vel
 		0.0,                   // jmpDec
@@ -307,7 +361,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		120					//variabile per la inizializzazione dei frame
 		});
 
-	enemy.push_back({
+	enemy[0].push_back({
 		{1600, 300, 1630, 330},  // r
 		-1,                  // vel
 		1.0,                   // jmpDec
@@ -318,76 +372,81 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		0					//variabile per la inizializzazione dei frame
 		});
 
-	initialArr = enemy;
+	for (int f = 0; f < quantitaLivelli; f++) {
+		initialArr[f] = enemy[f];
+	}
+
+	
 	// inizializzazione livello 
 	for (int i = 0; i < livSize; i++) {
 		for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
 			if (j < 16) {
-				livello[i][j] = 0;
+				livello[0][i][j] = 0;
+				livello[1][i][j] = 0;
+				livello[2][i][j] = 0;
 			}
 			else {
-				livello[i][j] = 1;
+				livello[0][i][j] = 1;
+				livello[1][i][j] = 1;
+				livello[2][i][j] = 1;
 			}
 		}
 	}
 
-	livello[5][16] = 0;
-	livello[6][16] = 0;
-	livello[7][16] = 0;
-	livello[5][17] = 1;
-	livello[6][17] = 1;
-	livello[7][17] = 1;
-	livello[0][15] = 1;
-	livello[7][12] = 1;
-	livello[9][12] = 2;
-	livello[9][13] = 3;
-	livello[26][9] = 1;
+	livello[0][5][16] = 0;
+	livello[0][6][16] = 0;
+	livello[0][7][16] = 0;
+	livello[0][5][17] = 1;
+	livello[0][6][17] = 1;
+	livello[0][7][17] = 1;
+	livello[0][0][15] = 1;
+	livello[0][7][12] = 1;
+	livello[0][9][12] = 2;
+	livello[0][9][13] = 3;
+	livello[0][26][9] = 1;
 	for (int i = 7; i <= SCREEN_HEIGHT / BLOCK_SIZE; i++) {
-		livello[20][i] = 1;
+		livello[0][20][i] = 1;
 	}
-	livello[19][12] = 1;
-	livello[14][9] = 1;
-	livello[13][8] = 1;
+	livello[0][19][12] = 1;
+	livello[0][14][9] = 1;
+	livello[0][13][8] = 1;
 	for (int i = 25; i < livSize; i++) {
-		livello[i][7] = 2;
-		livello[i][6] = 4;
+		livello[0][i][7] = 2;
+		livello[0][i][6] = 4;
 	}
-	livello[10][10] = 5;
-	livello[11][11] = 5;
+	livello[0][10][10] = 5;
+	livello[0][11][11] = 5;
+	livello[0][11][12] = 5;
 	for (int i = 25; i < 30; i++) {
 		for (int j = 16; j <= SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-			livello[i][j] = 0;
+			livello[0][i][j] = 0;
 		}
 	}
-	livello[24][15] = 4;
-	livello[30][15] = 4;
-	livello[25][14] = 4;
-	livello[29][14] = 4;
-	livello[26][13] = 4;
-	livello[26][12] = 4;
-	livello[28][13] = 4;
-	livello[28][12] = 4;
-	livello[27][12] = 4;
+	livello[0][24][15] = 4;
+	livello[0][30][15] = 4;
+	livello[0][25][14] = 4;
+	livello[0][29][14] = 4;
+	livello[0][26][13] = 4;
+	livello[0][26][12] = 4;
+	livello[0][28][13] = 4;
+	livello[0][28][12] = 4;
+	livello[0][27][12] = 4;
 
-
+	//trascrivo su intial liv
 	for (int i = 0; i < livSize; i++) {
 		for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-			initialLiv[i][j] = livello[i][j];
+			for (int f = 0; f < quantitaLivelli; f++) {
+				initialLiv[f][i][j] = livello[f][i][j];
+				initialLiv[f][i][j] = livello[f][i][j];
+			}
+			
 		}
 	}
 
 	//calcolo tempo per un frame
 	double fps = 1000000 / wS.MAX_FPS;
 
-	//creo la console
-	if (wS.console) {
-		AllocConsole();
-		FILE* fDummy;
-		freopen_s(&fDummy, "CONIN$", "r", stdin);
-		freopen_s(&fDummy, "CONOUT$", "w", stderr);
-		freopen_s(&fDummy, "CONOUT$", "w", stdout);
-		ios_base::sync_with_stdio;
-	}
+	
 
 	//registro la finestra
 
@@ -427,6 +486,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	wicDecoder->GetFrame(0, &wicFrame); // prende l'immagine
 	wicConverter->Initialize(wicFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom); // inizializza il converter
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, &cuoriBitmap);// crea la bitmap direct2d
+
+	wicFactory->CreateDecoderFromFilename(L"sprites/enemy.png", NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wicDecoder); // Crea Decoder
+	wicFactory->CreateFormatConverter(&wicConverter); // crea Converter
+	wicDecoder->GetFrame(0, &wicFrame); // prende l'immagine
+	wicConverter->Initialize(wicFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom); // inizializza il converter
+	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, &enemyBitmap);// crea la bitmap direct2d
 	//rilascia risorse inutili
 	wicFactory->Release();
 	wicDecoder->Release();
@@ -451,12 +516,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				player.immunity--;
 			else if (player.immunity == 0)
 				player.immunity = player.initialImmunity;
-			movimentoPlayer(livello, initialLiv, BLOCK_SIZE, enemy, enemy.size(), SCREEN_WIDTH, livSize, initialArr, score, SCREEN_HEIGHT, tempo);
+			movimentoPlayer(livello[numeroLivello], initialLiv[numeroLivello], BLOCK_SIZE, enemy[numeroLivello], enemy[numeroLivello].size(), SCREEN_WIDTH, livSize, initialArr[0], score, SCREEN_HEIGHT, tempo);
 			toggleEv();
-			if (player.r.left >= (livSize - 1)*BLOCK_SIZE) {
-				cout << levelNumber;
-				levelNumber++;
-				ripristino(enemy, enemy.size(), initialArr, livello, initialLiv, SCREEN_HEIGHT, BLOCK_SIZE, livSize);
+			if (player.r.left >= (livSize - 2)*BLOCK_SIZE) {
+				numeroLivello++;
+				ripristino(enemy[numeroLivello], enemy[numeroLivello].size(), initialArr[numeroLivello], livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize);
+				score = 0;
+				tempo = 0;
 			}
 			//RedrawWindow(hW, NULL, NULL, RDW_INTERNALPAINT | RDW_UPDATENOW | RDW_INVALIDATE);
 			InvalidateRect(hW, NULL, TRUE);

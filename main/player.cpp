@@ -13,7 +13,7 @@ struct gameStuff player = {
 	player.vel = 0,
 	player.acc = 0.1,
 	player.initialAcc = 1,
-	player.dec = 0.7,
+	player.dec = 2,
 	player.jmpDec = 0.5,
 	player.initialJmp = 9,
 	player.velMax = 5,
@@ -306,7 +306,7 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 
 	//funzione per i nemici
 	if (!dead) {
-		vector<entity> uot;
+		vector<entity> uot;//riferimento per aggiungere nemici nella funzione EnemyMovement
 		for (int i = 0; i < en.size(); i++) {
 			bool elimina = false;
 			entity& e = en[i];
@@ -314,7 +314,7 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 			if (e.r.left < cam.posX + SCREEN_WIDTH) {
 				movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina);
 				//si controlla se il nemico è fuori dallo schermo
-				if (e.type >= 0 && (e.r.right < cam.posX || e.r.left <= 0 || (e.r.left > cam.posX + SCREEN_WIDTH && e.r.left - e.vel < cam.posX + SCREEN_WIDTH))) {
+				if (e.type >= 0 && e.type != 4 && (e.r.right < cam.posX || e.r.left <= 0 || (e.r.left > cam.posX + SCREEN_WIDTH && e.r.left - e.vel < cam.posX + SCREEN_WIDTH))) {
 					elimina = true;
 				}
 
@@ -327,14 +327,27 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 					elimina = true;
 				}
 				if (elimina) {
-					en.erase(en.begin() + i);
+					en.erase(en.begin() + i);//funzione per eliminare in maniera ordinata
 					break;
 				}
 
 				//si controlla se il player muore
-				if (e.type != 2 && !jump && player.r.right + movementX > e.r.left && player.r.left + movementX < e.r.right && player.r.top - movementY < e.r.bottom && player.r.bottom - movementY > e.r.top && player.immunity == player.initialImmunity) {
-					player.life--;
-					player.immunity--;
+				if (e.type != 2 && !jump && player.r.right + movementX > e.r.left && player.r.left + movementX < e.r.right && player.r.top - movementY < e.r.bottom && player.r.bottom - movementY > e.r.top ) {
+					switch (e.type) {
+					case 4:
+						if(player.life < 3)
+							player.life++;
+							en.erase(en.begin() + i);
+						break;
+					default:
+						if (player.immunity == player.initialImmunity) {
+							player.life--;
+							player.immunity--;
+						}
+						
+						break;
+					}
+					
 				}
 			}				
 		}
@@ -450,8 +463,44 @@ void ripristino(vector<entity>& enemies, int size, vector<entity>& initialArr, i
 
 void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina) {
 	bool stop = false;
-	//collisioni a destra e sinistra
-	if (e.type != 2) {
+	//collisioni a destra e sinistra si cambia direzione se non è un proiettile
+	switch (e.type) {
+	case 2:
+		if (player.r.right < e.r.left) {
+			e.fpa--;
+			if (e.fpa == 0) {
+				uot.push_back({
+						{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
+						-12,                  // vel
+						0.0,                   // jmpDec
+						0.0,                   // jmpPow (default value, change if needed)
+						 state::walking,        // state
+						3,
+						0,
+						0
+					});
+				e.fpa = e.iniFpa;
+			}
+
+		}
+		else if (player.r.left > e.r.right) {
+			e.fpa--;
+			if (e.fpa == 0) {
+				uot.push_back({
+						{e.r.right , e.r.top + 7, e.r.right + BLOCK_SIZE, e.r.bottom - 7},  // r
+						 12,                  // vel
+						0.0,                   // jmpDec
+						0.0,                   // jmpPow (default value, change if needed)
+						 state::walking,        // state
+						3,
+						0,
+						0
+					});
+				e.fpa = e.iniFpa;
+			}
+		}
+		break;
+	default:
 		if (e.state != state::jumping && e.type != 3) {
 			if (e.r.left % BLOCK_SIZE < e.r.right % BLOCK_SIZE || e.r.right % BLOCK_SIZE == 0) {
 				if (!bottomColl(livello[e.r.left / BLOCK_SIZE][e.r.bottom / BLOCK_SIZE], NULL)) {
@@ -468,15 +517,15 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 			if (e.r.left % BLOCK_SIZE < e.r.right % BLOCK_SIZE || e.r.right % BLOCK_SIZE == 0) {
 				if (bottomColl(livello[e.r.left / BLOCK_SIZE][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE], NULL) && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
 
-						e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
-						stop = true;
+					e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
+					stop = true;
 
 				}
 			}
 			else {
 				if (bottomColl(livello[e.r.left / BLOCK_SIZE][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE], livello[e.r.left / BLOCK_SIZE + 1][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE]) && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
-						e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
-						stop = true;
+					e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
+					stop = true;
 
 				}
 			}
@@ -526,40 +575,6 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 			e.state = state::walking;
 			e.jmpPow = 0;
 		}
-	}
-	else if(e.type == 2){
-		if (player.r.right < e.r.left) {
-			e.fpa--;
-			if (e.fpa == 0) {
-				uot.push_back({
-						{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
-						-12,                  // vel
-						0.0,                   // jmpDec
-						0.0,                   // jmpPow (default value, change if needed)
-						 state::walking,        // state
-						3,
-						0,
-						0
-					});
-				e.fpa = e.iniFpa;
-			}
-				
-		}
-		else if (player.r.left > e.r.right) {
-			e.fpa--;
-			if (e.fpa == 0) {
-				uot.push_back({
-						{e.r.right , e.r.top + 7, e.r.right + BLOCK_SIZE, e.r.bottom - 7},  // r
-						 12,                  // vel
-						0.0,                   // jmpDec
-						0.0,                   // jmpPow (default value, change if needed)
-						 state::walking,        // state
-						3,
-						0,
-						0
-					});
-				e.fpa = e.iniFpa;
-			}
-		}
+		break;
 	}
 }

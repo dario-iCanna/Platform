@@ -55,5 +55,13 @@
     <Image Include="sprites\cuori.png">
       <Filter>File di origine</Filter>
     </Image>
+    <Image Include="sprites\enemy.png">
+      <Filter>File di origine</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Livelli.txt">
+      <Filter>File di origine</Filter>
+    </Text>
   </ItemGroup>
 </Project>
