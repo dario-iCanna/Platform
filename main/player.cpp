@@ -13,8 +13,9 @@ struct gameStuff player = {
 	player.vel = 0,
 	player.acc = 0.1,
 	player.initialAcc = 1,
-	player.dec = 2,
-	player.jmpDec = 0.5,
+	player.dec = 0.5,
+	player.jmpDec = 1,
+	player.jmpHigh = 0.3,
 	player.initialJmp = 9,
 	player.velMax = 5,
 	player.jmpPow = 0,
@@ -53,14 +54,14 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	}
 
 	//azioni dipendenti dallo stato
-	if (player.state == state::idle) {
+
 		if (D.pressed) {
 			player.vel += player.initialAcc;
 		}
 		else if (A.pressed) {
 			player.vel -= player.initialAcc;
 		}
-	}
+
 	else if (player.state == state::walking) {
 		if (player.vel > 0 && !D.held) { 
 			player.vel -= player.dec;
@@ -74,7 +75,13 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 		}
 	}
 	else if (player.state == state::jumping) {
-		player.jmpPow -= player.jmpDec;
+		if (player.jmpPow <= 0) {
+			player.highJump = false;
+		}
+		if (player.highJump)
+			player.jmpPow -= player.jmpHigh;
+		else
+			player.jmpPow -= player.jmpDec;
 	}
 
 	//movimento a destra
@@ -97,12 +104,8 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	}
 	
 	//salto più alto
-	if (W.held && player.state == state::jumping && player.jmpPow > 0 && player.highJump) {
-		player.jmpDec = 0.3;
-	}
-	else if(player.state == state::jumping){
+	if(player.state == state::jumping && W.held == false){
 		player.highJump = false;
-		player.jmpDec = 1;
 	}
 
 	//controlla la velocità massima
@@ -314,7 +317,7 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 			if (e.r.left < cam.posX + SCREEN_WIDTH) {
 				movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina);
 				//si controlla se il nemico è fuori dallo schermo
-				if (e.type >= 0 && e.type != 4 && (e.r.right < cam.posX || e.r.left <= 0 || (e.r.left > cam.posX + SCREEN_WIDTH && e.r.left - e.vel < cam.posX + SCREEN_WIDTH))) {
+				if (e.type >= 0 && (e.r.right < cam.posX || e.r.left <= 0 || (e.r.left > cam.posX + SCREEN_WIDTH && e.r.left - e.vel < cam.posX + SCREEN_WIDTH))) {
 					elimina = true;
 				}
 
@@ -337,7 +340,13 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 					case 4:
 						if(player.life < 3)
 							player.life++;
-							en.erase(en.begin() + i);
+						en.erase(en.begin() + i);
+						break;
+					case 5:
+						player.velMax = 10;
+						player.powerUpTime[e.type] = e.fpa;
+						//rimuovere l'entità dal gruppo di entità
+						en.erase(en.begin() + i);
 						break;
 					default:
 						if (player.immunity == player.initialImmunity) {
@@ -375,6 +384,7 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 		dead = true;
 	}
 
+	//si riparte dal livello 0
 	if (dead) {
 		ripristino(en,size, initialArr, livello, initialLiv,SCREEN_HEIGTH,BLOCK_SIZE, livSize);
 		score = 0;

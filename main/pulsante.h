@@ -13,7 +13,7 @@ extern struct button {
 	void release();
 
 
-}W, A, S, D;
+}W, A, S, D, J;
 
 //metodo toggle
 void toggleEv();

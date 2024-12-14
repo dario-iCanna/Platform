@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include <vector>
+#include <unordered_map>
 
 using namespace std;
 
@@ -13,6 +14,7 @@ extern struct gameStuff {
 	double initialAcc;
 	double dec;
 	double jmpDec;
+	double jmpHigh;
 	double initialJmp;
 	int velMax;
 	double jmpPow;
@@ -22,6 +24,7 @@ extern struct gameStuff {
 	short maxLife;
 	short immunity;
 	short initialImmunity;
+	unordered_map<short, int> powerUpTime; //tempo per la fine del powerup
 }player;
 
 //struttura per le entità
@@ -32,9 +35,10 @@ extern struct entity
 	double jmpDec;
 	double jmpPow;
 	int state;//usato per collisioniNshit
-	short type;//0 per normal 1 per penso una sega 2 per cannone 3 per proiettile 4 per cuore
+	short type;//0 per normal 1 per penso una sega 2 per cannone 3 per proiettile 4 per cuore 5 power up
 	short fpa;//frame per azione
 	short iniFpa;
+
 };
 //stato del player
 enum state{
