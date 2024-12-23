@@ -13,8 +13,8 @@ using namespace std;
 using namespace D2D1;
 
 #pragma region variabili globali
-#define BLOCK_SIZE 30 // grandezza blocco
-int SCREEN_HEIGHT = 700; //altezza schermo
+#define BLOCK_SIZE 32 // grandezza blocco
+int SCREEN_HEIGHT = 746; //altezza schermo
 int SCREEN_WIDTH = 1500; //larghezza schermo
 int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
 HRESULT p = CoInitialize(NULL);//funzione per tirare in ballo funzioni COM
@@ -109,7 +109,56 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		// disegno livello
 		for (int i = floor(cam.posX/BLOCK_SIZE); i < floor(cam.posX / BLOCK_SIZE) + 50 && i < livSize[numeroLivello]; i++) {
 			for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-				if (livello[numeroLivello][i][j] != 0) {
+				switch (livello[numeroLivello][i][j]) {
+				case 0:
+					break;
+				case 2:
+					if (i < livSize[numeroLivello]-1 && i > 0 && livello[numeroLivello][i + 1][j] == 2 && livello[numeroLivello][i -1][j] == 2) {
+						pRT->DrawBitmap(terrainBitmap,
+							RectF(
+								i * BLOCK_SIZE - cam.posX,
+								j * BLOCK_SIZE,
+								(i + 1) * BLOCK_SIZE - cam.posX,
+								(j + 1) * BLOCK_SIZE
+							),
+							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16 * (livello[numeroLivello][i][j] - 1), 48, 16 * livello[numeroLivello][i][j])
+						);
+					}
+					else if (i < livSize[numeroLivello] - 1 && livello[numeroLivello][i + 1][j] == 2) {
+						pRT->DrawBitmap(terrainBitmap,
+							RectF(
+								i * BLOCK_SIZE - cam.posX,
+								j * BLOCK_SIZE,
+								(i + 1) * BLOCK_SIZE - cam.posX,
+								(j + 1) * BLOCK_SIZE
+							),
+							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16 * (livello[numeroLivello][i][j] - 1), 32, 16 * livello[numeroLivello][i][j])
+						);
+					}
+					else if (i > 0 && livello[numeroLivello][i - 1][j] == 2) {
+						pRT->DrawBitmap(terrainBitmap,
+							RectF(
+								i * BLOCK_SIZE - cam.posX,
+								j * BLOCK_SIZE,
+								(i + 1) * BLOCK_SIZE - cam.posX,
+								(j + 1) * BLOCK_SIZE
+							),
+							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(48, 16 * (livello[numeroLivello][i][j] - 1), 64, 16 * livello[numeroLivello][i][j])
+						);
+					}
+					else {
+						pRT->DrawBitmap(terrainBitmap,
+							RectF(
+								i * BLOCK_SIZE - cam.posX,
+								j * BLOCK_SIZE,
+								(i + 1) * BLOCK_SIZE - cam.posX,
+								(j + 1) * BLOCK_SIZE
+							),
+							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * (livello[numeroLivello][i][j] - 1), 16, 16 * livello[numeroLivello][i][j])
+						);
+					}
+					break;
+				default:
 					pRT->DrawBitmap(terrainBitmap,
 						RectF(
 							i * BLOCK_SIZE - cam.posX,
@@ -117,8 +166,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							(i + 1) * BLOCK_SIZE - cam.posX,
 							(j + 1) * BLOCK_SIZE
 						),
-						1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30 * (livello[numeroLivello][i][j] - 1), 0, 30 * livello[numeroLivello][i][j], 30)
+						1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * (livello[numeroLivello][i][j] - 1), 16, 16 * livello[numeroLivello][i][j])
 					);
+					break;
 				}
 			}
 		}
@@ -236,11 +286,17 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		//disegno player
 		if(playerBitmapIdle && player.immunity % 2 == 0)
 		pRT->DrawBitmap(playerBitmapIdle, RectF(
-			player.r.left - cam.posX-2,
+			player.r.left - cam.posX - 4,
 			player.r.top,
-			player.r.right-cam.posX+2,
-			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,(player.state == state::jumping) ? RectF(40, 0, 60, 20): (player.state == state::walking) ? RectF(20, 0, 40, 20) :RectF(0, 0, 20, 20));
-
+			player.r.right-cam.posX + 4,
+			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(0, 0, 16, 16));
+		pRT->DrawRectangle(
+			RectF(
+				player.r.left - cam.posX,
+				player.r.top,
+				player.r.right - cam.posX,
+				player.r.bottom),
+			terrainBrushes[3]);
 		
 
 		pRT->EndDraw();
@@ -305,10 +361,9 @@ void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-void addEnemy(int levelNum, int x, int y, double vel, double jmpDec, double jmpPow,
-	int baseState, short type, short framePerAction) {
+void addEnemy(int levelNum, int x, int y, double vel, double jmpDec, double jmpPow,int baseState, short type, short framePerAction) {
 	enemy[levelNum].push_back({
-		{x, y, x+30, y+30},  // r
+		{x, y, x+BLOCK_SIZE, y+BLOCK_SIZE},  // r
 		vel,                  // vel
 		jmpDec,                   // jmpDec
 		jmpPow,                    //jmpPow
@@ -359,7 +414,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 
-	addEnemy(0, 200, 300, -1, 0, 0, state::walking, 0, 0);
+	addEnemy(0, 200, 180, 1, 0, 0, state::walking, 1, 0);
 	addEnemy(0, 200, 300, 0, 0, 0, state::walking, 4, 0);
 	addEnemy(0, 230, 300, 0, 0, 0, state::walking, 5, 600);
 	addEnemy(0, 240, 300, -1, 1, 0, state::walking, 0, 0);

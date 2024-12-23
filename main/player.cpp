@@ -8,7 +8,7 @@ using namespace std;
 
 //variabili del player
 struct gameStuff player = {
-	player.r = { 20,300,46,330 },
+	player.r = { 24,300,48,332 },
 	player.initialPos = player.r,
 	player.vel = 0,
 	player.acc = 0.1,
@@ -16,7 +16,7 @@ struct gameStuff player = {
 	player.dec = 0.5,
 	player.jmpDec = 1,
 	player.jmpHigh = 0.3,
-	player.initialJmp = 9,
+	player.initialJmp = 9.2,
 	player.velMax = 5,
 	player.jmpPow = 0,
 	player.state = state::idle,
@@ -40,7 +40,6 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	movementX += player.vel; //+ movimento dipendente da entità
 	movementY += player.jmpPow; //+ movimento dipendente da entità
 	discesa = false;
-	
 	jump = false;
 	
 	//controllo per restaare nello schermo
@@ -297,15 +296,14 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 		}
 	}
 
-	if (discesa) {
-		player.state = state::jumping; // si mette lo stto di jumping
-	}
+	
 
 	// variabile per il riprisstino e per l'uccisione di un nemico
 	bool dead = false, kill = false;
 	if (player.r.bottom > 600) {
 		dead = true;
 	}
+
 
 	//funzione per i nemici
 	if (!dead) {
@@ -324,19 +322,39 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 				//si controlla se il player uccide il nemico
 				if (e.type == 0 && player.state == state::jumping && !kill && player.r.bottom - movementY >= e.r.top && player.r.bottom <= e.r.top && player.r.right > e.r.left && player.r.left < e.r.right && movementY < 0) {
 					movementY = player.r.bottom - e.r.top;
-					jump = true;
-					discesa = false;
-					kill = true;
-					elimina = true;
+					jump = true;//serve per evitare di fare collisione una volta che si è ucciso
+					discesa = false;//mette la discesa quindi mette il jumping
+					kill = true;// non so a cosa serve
+					elimina = true;// serve per rimuovere il nemico in modo ordinato
 				}
 				if (elimina) {
 					en.erase(en.begin() + i);//funzione per eliminare in maniera ordinata
 					break;
 				}
 
-				//si controlla se il player muore
-				if (e.type != 2 && !jump && player.r.right + movementX > e.r.left && player.r.left + movementX < e.r.right && player.r.top - movementY < e.r.bottom && player.r.bottom - movementY > e.r.top ) {
+				if(kill)
+					kill = false;
+
+				//si controlla se il player fa collisione
+				if (e.type != 2 && !jump && player.r.right + movementX >= e.r.left && player.r.left + movementX <= e.r.right && player.r.top - movementY <= e.r.bottom && player.r.bottom - movementY >= e.r.top ) {
 					switch (e.type) {
+					case 1:
+						//piattaforme mobili:
+						//si controlla che si possa fare una collisione
+						if (player.r.bottom <= e.r.top &&player.jmpPow <= 0) {
+							//si cambia per snappare con la entità
+							movementY = player.r.bottom - e.r.top;
+							//se lo stato è jumping lo cambio
+							if (player.state == state::jumping)
+								player.state = state::idle;
+							//cambio le variabili e nullifico la discesa
+							player.jmpPow = 0;
+							movementX += e.vel;
+							discesa = false;
+						}
+							
+						
+						break;
 					case 4:
 						if(player.life < 3)
 							player.life++;
@@ -344,14 +362,21 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 						break;
 					case 5:
 						player.velMax = 10;
-						player.powerUpTime[e.type] = e.fpa;
+						if(player.powerUpTime[e.type] < e.fpa) player.powerUpTime[e.type] = e.fpa;
 						//rimuovere l'entità dal gruppo di entità
 						en.erase(en.begin() + i);
 						break;
 					default:
-						if (player.immunity == player.initialImmunity) {
+						if (player.immunity == player.initialImmunity && player.r.bottom - movementY > e.r.top && player.r.bottom < e.r.top) {
 							player.life--;
 							player.immunity--;
+							// si fa saltare indietro il player
+							player.jmpPow = 2;
+							kill = true; // variabile che serve per non killare il nemico se subisci danni
+							if (player.r.left + movementX < e.r.right && player.r.left + movementX >= e.r.left)
+								player.vel = 3;
+							else
+								player.vel = -3;
 						}
 						
 						break;
@@ -389,6 +414,10 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 		ripristino(en,size, initialArr, livello, initialLiv,SCREEN_HEIGTH,BLOCK_SIZE, livSize);
 		score = 0;
 		tempo = 0;
+	}
+
+	if (discesa) {
+		player.state = state::jumping; // si mette lo stto di jumping
 	}
 }
 

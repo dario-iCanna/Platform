@@ -35,7 +35,7 @@ extern struct entity
 	double jmpDec;
 	double jmpPow;
 	int state;//usato per collisioniNshit
-	short type;//0 per normal 1 per penso una sega 2 per cannone 3 per proiettile 4 per cuore 5 power up
+	short type;//0 per normal 1 per piattaforme mobili 2 per cannone 3 per proiettile 4 per cuore 5 power up
 	short fpa;//frame per azione
 	short iniFpa;
 
