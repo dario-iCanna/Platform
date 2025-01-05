@@ -1,6 +1,5 @@
 #ifndef PULSANTE_H
 #define PULSANTE_H
-#include <windows.h>
 
 //struct per ogni pulsante
 extern struct button {

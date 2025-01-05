@@ -1,5 +1,7 @@
 #pragma once
 #include <windows.h>
+#include <wincodec.h>
+#include <d2d1.h>
 #include <vector>
 #include <unordered_map>
 
@@ -24,6 +26,7 @@ extern struct gameStuff {
 	short maxLife;
 	short immunity;
 	short initialImmunity;
+	bool facingLeft; // variabile per disegnare
 	unordered_map<short, int> powerUpTime; //tempo per la fine del powerup
 }player;
 
@@ -38,7 +41,8 @@ extern struct entity
 	short type;//0 per normal 1 per piattaforme mobili 2 per cannone 3 per proiettile 4 per cuore 5 power up
 	short fpa;//frame per azione
 	short iniFpa;
-
+	int eBlockWidth;
+	int eBlockHeight;
 };
 //stato del player
 enum state{
@@ -48,16 +52,16 @@ enum state{
 };
 
 //metodo movimento del player
-void movimentoPlayer(int **&livello, int**& initialLiv, int BLOCK_SIZE, vector<entity>& en, int size, int SCREEN_WIDTH, int livSize, vector<entity>& initialArr, int& score, int SCREEN_HEIGHT,int&tempo);
+void movimentoPlayer(int **& livello, int**& initialLiv, int BLOCK_SIZE, vector<entity>& en, int size, int SCREEN_WIDTH, int livSize, vector<entity>& initialArr, int& score, int SCREEN_HEIGHT,int&tempo, int pWidthBlock, int pHeightBlock);
 
 //collsione laterare 
-short sideColl(int m, int f);
+short sideColl(int m);
 
 //collisione in basso
-short bottomColl(int m, int f);
+short bottomColl(int m);
 
 //collsione in alto
-short topColl(int m, int f);
+short topColl(int m);
 
 // ripristino posizione
 void ripristino(vector<entity>& enemies, int size, vector<entity>& initialArr, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize);

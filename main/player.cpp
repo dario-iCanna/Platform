@@ -24,13 +24,14 @@ struct gameStuff player = {
 	player.life = 3,
 	player.maxLife = 3,
 	player.immunity = 90,
-	player.initialImmunity = 90
+	player.initialImmunity = 90,
+	player.facingLeft = true
 };
 bool discesa ,jump = false;
 int movementX = 0, movementY = 0;
 
 //gestione movimento del player 
-void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<entity>& en, int size, int SCREEN_WIDTH, int livSize, vector<entity>& initialArr, int& score, int SCREEN_HEIGTH, int&tempo)
+void movimentoPlayer(int**& livello, int**& initialLiv, int BLOCK_SIZE, vector<entity>& en, int size, int SCREEN_WIDTH, int livSize, vector<entity>& initialArr, int& score, int SCREEN_HEIGTH, int& tempo, int pWidthBlock, int pHeightBlock)
 {
 	if (jump) {
 		player.jmpPow = player.initialJmp;
@@ -39,9 +40,9 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	}
 	movementX += player.vel; //+ movimento dipendente da entità
 	movementY += player.jmpPow; //+ movimento dipendente da entità
-	discesa = false;
+	discesa = true;
 	jump = false;
-	
+
 	//controllo per restaare nello schermo
 	if (player.r.left + movementX < cam.posX) {
 		movementX = cam.posX - player.r.left;
@@ -54,26 +55,30 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 
 	//azioni dipendenti dallo stato
 
-		if (D.pressed) {
-			player.vel += player.initialAcc;
-		}
-		else if (A.pressed) {
-			player.vel -= player.initialAcc;
-		}
-
+	if (D.held && !A.held && player.vel >= 0 && player.vel < 1) {
+		player.vel += player.initialAcc;
+		if(player.state == state::idle || player.state == state::walking)
+			player.facingLeft = false;
+	}
+	else if (A.held && !D.held && player.vel <= 0 && player.vel > -1) {
+		player.vel -= player.initialAcc;
+		if (player.state == state::idle || player.state == state::walking)
+			player.facingLeft = true;
+	}
 	else if (player.state == state::walking) {
-		if (player.vel > 0 && !D.held) { 
+		if (player.vel > 0 && (!D.held || A.held)) {
 			player.vel -= player.dec;
 		}
-		else if (player.vel < 0 && !A.held) {
+		else if (player.vel < 0 && (!A.held || D.held)) {
 			player.vel += player.dec;
 		}
 
-		if (abs(player.vel) < player.dec && !A.held && !D.held) {
+		if (abs(player.vel) < player.dec) {
 			player.vel = 0;
 		}
 	}
-	else if (player.state == state::jumping) {
+	//si diminuisce la forza salto
+	if (player.state == state::jumping) {
 		if (player.jmpPow <= 0) {
 			player.highJump = false;
 		}
@@ -84,15 +89,18 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	}
 
 	//movimento a destra
-	if (D.held) {
+	if (D.held && !A.held) {
 		//movimento normale
 		player.vel += player.acc;
+		if (player.facingLeft)
+			player.facingLeft = false;
 	}
 	//movimento a sinitra
-	if (A.held) {
+	if (A.held && !D.held) {
 		//movimento normale
 		player.vel -= player.acc;
-
+		if (!player.facingLeft)
+			player.facingLeft = true;
 	}
 
 	//salto
@@ -101,9 +109,9 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 		player.state = state::jumping;
 		player.highJump = true;
 	}
-	
+
 	//salto più alto
-	if(player.state == state::jumping && W.held == false){
+	if (player.state == state::jumping && W.held == false) {
 		player.highJump = false;
 	}
 
@@ -114,189 +122,6 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 	else if (player.vel < -player.velMax && A.held) {
 		player.vel = -player.velMax;
 	}
-
-	//collisioni in alto e in basso
-	if (movementY != 0) {
-
-		if (player.r.left % BLOCK_SIZE < player.r.right % BLOCK_SIZE || player.r.right % BLOCK_SIZE == 0) {
-
-			//switch collisione
-			switch (bottomColl(livello[player.r.left / BLOCK_SIZE][(player.r.bottom - movementY) / BLOCK_SIZE], NULL)) {
-			case true:
-				if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
-					movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
-					player.state = state::idle;
-					player.jmpPow = 0;
-				}
-				break;
-			case 2:
-				livello[player.r.left / BLOCK_SIZE][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
-				score++;
-				break;
-			}
-
-			switch (topColl(livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE], NULL)) {
-			case 3:
-				livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-			case true:
-				if (player.r.top / BLOCK_SIZE > (player.r.top - movementY) / BLOCK_SIZE) {
-					movementY = player.r.top - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
-					player.jmpPow = 0;
-				}
-				break;
-			case 2:
-				livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				score++;
-				break;
-			}
-		}
-		else {
-
-			switch (bottomColl(livello[player.r.left / BLOCK_SIZE][(player.r.bottom - movementY) / BLOCK_SIZE], livello[player.r.left / BLOCK_SIZE + 1][(player.r.bottom - movementY) / BLOCK_SIZE])) {
-			case true:
-				if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
-					movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
-					player.state = state::idle;
-					player.jmpPow = 0;
-				}
-				break;
-			case 2:
-				if (livello[player.r.left / BLOCK_SIZE][(player.r.bottom - movementY) / BLOCK_SIZE] == 4) {
-					livello[player.r.left / BLOCK_SIZE][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
-				}
-
-				if (livello[player.r.left / BLOCK_SIZE + 1][(player.r.bottom - movementY) / BLOCK_SIZE] == 4) {
-					livello[player.r.left / BLOCK_SIZE + 1][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
-				}
-				score++;
-				break;
-			}
-			
-			switch (topColl(livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE], livello[player.r.left / BLOCK_SIZE + 1][(player.r.top - movementY) / BLOCK_SIZE])) {
-			case 3:
-				if (livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] == 5) {
-					livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				}
-
-				if (livello[player.r.left / BLOCK_SIZE + 1][(player.r.top - movementY) / BLOCK_SIZE] == 5) {
-					livello[player.r.left / BLOCK_SIZE + 1][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				}
-			case true:
-				if ( player.r.top / BLOCK_SIZE > (player.r.top - movementY) / BLOCK_SIZE) {
-					movementY = player.r.top - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
-					player.jmpPow = 0;
-				}
-				break;
-			case 2:
-				if (livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] == 4) {
-					livello[player.r.left / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				}
-
-				if (livello[player.r.left / BLOCK_SIZE + 1][(player.r.top - movementY) / BLOCK_SIZE] == 4) {
-					livello[player.r.left / BLOCK_SIZE + 1][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				}
-				score++;
-				break;
-			}
-			
-		}
-		
-	}
-	//collisioni a destra e sinistra
-	if (movementX != 0)  {
-		if ((player.r.top - movementY) % BLOCK_SIZE < (player.r.bottom - movementY) % BLOCK_SIZE || (player.r.bottom - movementY) % BLOCK_SIZE == 0) {
-			switch (sideColl(livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE], NULL)) {
-			case true:
-				if (player.r.left / BLOCK_SIZE > (player.r.left + movementX) / BLOCK_SIZE) {
-					movementX = (player.r.left / BLOCK_SIZE) * BLOCK_SIZE - player.r.left;
-					player.vel = 0;
-				}
-				break;
-			case 2:
-				livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				score++;
-				break;
-			}
-			
-			switch (sideColl(livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE], NULL)) {
-			case true:
-				if ((player.r.right / BLOCK_SIZE < (player.r.right + movementX) / BLOCK_SIZE || player.r.right == ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE)) {
-					movementX = ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE - player.r.right;
-					player.vel = 0;
-				}
-				break;
-			case 2:
-				livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				score++;
-				break;
-			}
-			
-		}
-		else {
-			switch (sideColl(livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE], livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + 1])) {
-			case true:
-				if (player.r.left / BLOCK_SIZE > (player.r.left + movementX) / BLOCK_SIZE) {
-					movementX = (player.r.left / BLOCK_SIZE) * BLOCK_SIZE - player.r.left;
-					player.vel = 0;
-				}
-				break;
-			case 2:
-				if (livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] == 4) {
-					livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				}
-
-				if (livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + 1] == 4) {
-					livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + 1] = 0;
-				}
-				score++;
-			}
-
-			switch (sideColl(livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE], livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + 1])) {
-			case true:
-				if ((player.r.right / BLOCK_SIZE < (player.r.right + movementX) / BLOCK_SIZE || player.r.right == ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE)) {
-					movementX = ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE - player.r.right;
-					player.vel = 0;
-				}
-				break;
-			case 2:
-				if (livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] == 4) {
-					livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-				}
-
-				if (livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + 1] == 4) {
-					livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + 1] = 0;
-				}
-				score++;
-				break;
-			}
-			
-			
-		}
-	}
-
-	//controllo stati
-	if (player.state != state::jumping) {
-		//cambia lo stato se non in jumping
-		if (player.vel == 0 && !D.held && !A.held) {
-			player.state = state::idle;
-		}
-		else if (player.vel != 0 && player.state == state::idle) {
-			player.state = state::walking;
-		}
-
-		if (player.r.left % BLOCK_SIZE < player.r.right % BLOCK_SIZE || player.r.right % BLOCK_SIZE == 0) {
-			if (!bottomColl(livello[player.r.left / BLOCK_SIZE][player.r.bottom / BLOCK_SIZE], NULL)) {
-				discesa = true;
-			}
-		}
-		else {
-			if (!bottomColl(livello[player.r.left / BLOCK_SIZE][player.r.bottom / BLOCK_SIZE], livello[player.r.left / BLOCK_SIZE + 1][player.r.bottom / BLOCK_SIZE])) {
-				discesa = true;
-			}
-		}
-	}
-
-	
 
 	// variabile per il riprisstino e per l'uccisione di un nemico
 	bool dead = false, kill = false;
@@ -332,16 +157,16 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 					break;
 				}
 
-				if(kill)
+				if (kill)
 					kill = false;
 
 				//si controlla se il player fa collisione
-				if (e.type != 2 && !jump && player.r.right + movementX >= e.r.left && player.r.left + movementX <= e.r.right && player.r.top - movementY <= e.r.bottom && player.r.bottom - movementY >= e.r.top ) {
+				if (e.type != 2 && !jump && player.r.right + movementX >= e.r.left && player.r.left + movementX <= e.r.right && player.r.top - movementY <= e.r.bottom && player.r.bottom - movementY >= e.r.top) {
 					switch (e.type) {
 					case 1:
 						//piattaforme mobili:
 						//si controlla che si possa fare una collisione
-						if (player.r.bottom <= e.r.top &&player.jmpPow <= 0) {
+						if (player.r.bottom <= e.r.top && player.jmpPow <= 0) {
 							//si cambia per snappare con la entità
 							movementY = player.r.bottom - e.r.top;
 							//se lo stato è jumping lo cambio
@@ -352,132 +177,190 @@ void movimentoPlayer(int **&livello, int**&initialLiv, int BLOCK_SIZE, vector<en
 							movementX += e.vel;
 							discesa = false;
 						}
-							
-						
+
+
 						break;
 					case 4:
-						if(player.life < 3)
+						if (player.life < 3)
 							player.life++;
 						en.erase(en.begin() + i);
 						break;
 					case 5:
 						player.velMax = 10;
-						if(player.powerUpTime[e.type] < e.fpa) player.powerUpTime[e.type] = e.fpa;
+						if (player.powerUpTime[e.type] < e.fpa) player.powerUpTime[e.type] = e.fpa;
 						//rimuovere l'entità dal gruppo di entità
 						en.erase(en.begin() + i);
 						break;
 					default:
-						if (player.immunity == player.initialImmunity && player.r.bottom - movementY > e.r.top && player.r.bottom < e.r.top) {
+						if (player.immunity == player.initialImmunity && (player.r.bottom - movementY > e.r.top && player.r.top - movementY < e.r.bottom)) {
 							player.life--;
 							player.immunity--;
 							// si fa saltare indietro il player
+							player.state = state::jumping;
 							player.jmpPow = 2;
+							movementY += player.jmpPow;
 							kill = true; // variabile che serve per non killare il nemico se subisci danni
 							if (player.r.left + movementX < e.r.right && player.r.left + movementX >= e.r.left)
 								player.vel = 3;
 							else
 								player.vel = -3;
 						}
-						
+
 						break;
 					}
-					
+
 				}
-			}				
+			}
 		}
 		//si pushano tutti i nemici che sono nell'array
 		for (entity i : uot) {
 			en.push_back(i);
 		}
 	}
-	
-	//movimento player effettivo
-	player.r.left += movementX;
-	player.r.right += movementX;
-	player.r.top -= movementY;
-	player.r.bottom -= movementY;
-	movementX = 0;
-	movementY = 0;
 
-	//spostamento cam.posX
-	if (player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX > SCREEN_WIDTH/2 && cam.posX + SCREEN_WIDTH < (livSize)* BLOCK_SIZE) {
-		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH/2;
+	//collisioni in alto e in basso
+
+	if (player.r.left / BLOCK_SIZE + pWidthBlock == player.r.right / BLOCK_SIZE && player.r.right % BLOCK_SIZE != 0) {
+		pWidthBlock++;
 	}
 
-	//controllo se le vite sono a zero
-	if (player.life <= 0) {
-		dead = true;
-	}
+	//si prende per quanti blocchi bisogna fare la collisione
+	for (int i = 0; i < pWidthBlock; i++) {
+			if (player.jmpPow <= 0)
+			switch (bottomColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE])) {
+			case true:
+				if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
+					movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
+					player.state = state::idle;
+					player.jmpPow = 0;
+				}
+				discesa = false;
+				break;
+			case 2:
+				livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
+				score++;
+				break;
+			}
 
-	//si riparte dal livello 0
-	if (dead) {
-		ripristino(en,size, initialArr, livello, initialLiv,SCREEN_HEIGTH,BLOCK_SIZE, livSize);
-		score = 0;
-		tempo = 0;
-	}
+			if (player.jmpPow > 0)
+			switch (topColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE])) {
+			case 3:
+				livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
+			case true:
+					movementY = ((player.r.top - movementY) / BLOCK_SIZE + 1)*BLOCK_SIZE - player.r.top;
 
-	if (discesa) {
-		player.state = state::jumping; // si mette lo stto di jumping
+					player.jmpPow = 0;
+				
+				break;
+			case 2:
+				livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
+				score++;
+				break;
+			}
+		}
+	//collisioni a destra e sinistra da sistemare nelle piattaforme mobili
+		
+		//si prende per quanti blocchi bisogna fare la collisione
+		if (movementX != 0) {
+			if (player.r.top / BLOCK_SIZE + pHeightBlock == player.r.bottom / BLOCK_SIZE && (player.r.bottom - movementY) % BLOCK_SIZE != 0) {
+				pHeightBlock++;
+			}
+			for (int i = 0; i < pHeightBlock; i++) {
+				switch (sideColl(livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i])) {
+				case true:
+					if (player.r.left / BLOCK_SIZE > (player.r.left + movementX) / BLOCK_SIZE) {
+						movementX = (player.r.left / BLOCK_SIZE) * BLOCK_SIZE - player.r.left;
+						player.vel = 0.99;
+					}
+					break;
+				case 2:
+					livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
+					score++;
+				}
+
+				switch (sideColl(livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i])) {
+				case true:
+					if ((player.r.right / BLOCK_SIZE < (player.r.right + movementX) / BLOCK_SIZE || player.r.right == ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE)) {
+						movementX = ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE - player.r.right;
+						player.vel = -0.99;
+					}
+					break;
+				case 2:
+					livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
+					score++;
+					break;
+				}
+			}
 	}
+		
+
+		//controllo stati
+		if (player.state != state::jumping) {
+			//cambia lo stato se non in jumping
+			if (player.vel == 0 && !D.held && !A.held) {
+				player.state = state::idle;
+			}
+			else if (player.vel != 0 && player.state == state::idle) {
+				player.state = state::walking;
+			}
+		}
+
+		//movimento player effettivo
+		player.r.left += movementX;
+		player.r.right += movementX;
+		player.r.top -= movementY;
+		player.r.bottom -= movementY;
+		movementX = 0;
+		movementY = 0;
+
+		//spostamento cam.posX
+		if (player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX > SCREEN_WIDTH / 2 && cam.posX + SCREEN_WIDTH < (livSize)*BLOCK_SIZE) {
+			cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH / 2;
+		}
+
+		//controllo se le vite sono a zero
+		if (player.life <= 0) {
+			dead = true;
+		}
+
+		//si riparte dal 
+		if (dead) {
+			ripristino(en, size, initialArr, livello, initialLiv, SCREEN_HEIGTH, BLOCK_SIZE, livSize);
+			score = 0;
+			tempo = 0;
+		}
+
+		if (discesa) {
+			player.state = state::jumping; // si mette lo stto di jumping
+		}
 }
 
-short sideColl(int m, int f) {
-	if (f) {
-		switch (f) {
-		case 1: return true;
-		case 3: return true;
-		case 4: return 2;
-		case 5: return true;
-		}
-	}
-
-	switch (m) {
+short sideColl(int m) {
+	switch (m/100) {
 	case 1: return true;
-	case 3: return true;
-	case 4: return 2;
-	case 5: return true;
+	case 3: return 2;
+	case 4: return true;
 	default:
 		return false;
 	}
 }
 
-short bottomColl(int m, int f) {
-	if (f) {
-		switch (f) {
-		case 1: return true;
-		case 2: return true;
-		case 3: return true;
-		case 4: return 2;
-		case 5: return true;
-		}
-	}
-
-	switch (m) {
+short bottomColl(int m) {
+	switch (m/100) {
 	case 1: return true;
 	case 2: return true;
-	case 3: return true;
-	case 4: return 2;
-	case 5: return true;
+	case 3: return 2;
+	case 4: return true;
 	default:
 		return false;
 	}
 }
 
-short topColl(int m, int f) {
-	if (f) {
-		switch (f) {
-		case 1: return true;
-		case 3: return true;
-		case 4: return 2;
-		case 5: return 3;
-		}
-	}
-
-	switch (m) {
+short topColl(int m) {
+	switch (m/100) {
 	case 1: return true;
-	case 3: return true;
-	case 4: return 2;
-	case 5: return 3;
+	case 3: return 2;
+	case 4: return 3;
 	default:
 		return false;
 	}
@@ -540,63 +423,53 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 		}
 		break;
 	default:
+		int limit = e.eBlockWidth;
+		if (e.r.left / BLOCK_SIZE + e.eBlockWidth == e.r.right / BLOCK_SIZE && e.r.right % BLOCK_SIZE != 0) {
+			limit++;
+		}
 		if (e.state != state::jumping && e.type != 3) {
-			if (e.r.left % BLOCK_SIZE < e.r.right % BLOCK_SIZE || e.r.right % BLOCK_SIZE == 0) {
-				if (!bottomColl(livello[e.r.left / BLOCK_SIZE][e.r.bottom / BLOCK_SIZE], NULL)) {
-					e.state = state::jumping;
+			
+			int count = 0;
+			for (int i = 0; i < limit; i++) {
+				if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][e.r.bottom / BLOCK_SIZE]) != true) {
+					count++;
 				}
 			}
-			else {
-				if (!bottomColl(livello[e.r.left / BLOCK_SIZE][e.r.bottom / BLOCK_SIZE], livello[e.r.left / BLOCK_SIZE + 1][e.r.bottom / BLOCK_SIZE])) {
-					e.state = state::jumping;
-				}
+			if (count == limit) {
+				e.state = state::jumping;
 			}
 		}
 		else {
-			if (e.r.left % BLOCK_SIZE < e.r.right % BLOCK_SIZE || e.r.right % BLOCK_SIZE == 0) {
-				if (bottomColl(livello[e.r.left / BLOCK_SIZE][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE], NULL) && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
+				for (int i = 0; i < limit; i++) {
+					if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE]) == true && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
+						e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
+						stop = true;
+						break;
 
-					e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
-					stop = true;
-
+					}
 				}
-			}
-			else {
-				if (bottomColl(livello[e.r.left / BLOCK_SIZE][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE], livello[e.r.left / BLOCK_SIZE + 1][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE]) && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
-					e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
-					stop = true;
-
-				}
-			}
 		}
 		//controllo collisioni si elimina la palla di cannone se tocca un muro
+		limit = e.eBlockHeight;
+		if (e.r.top / BLOCK_SIZE + e.eBlockHeight == e.r.bottom / BLOCK_SIZE && (int)(e.r.bottom - e.jmpPow) % BLOCK_SIZE != 0) {
+			limit++;
+		}
 		if (e.r.right + e.vel > cam.posX && e.r.left + e.vel < cam.posX + SCREEN_WIDTH) {
-			if ((int)(e.r.top - e.jmpPow) % BLOCK_SIZE < (int)(e.r.bottom - e.jmpPow) % BLOCK_SIZE || (int)(e.r.bottom - e.jmpPow) % BLOCK_SIZE == 0) {
-				if (e.vel < 0 && sideColl(livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE], NULL)) {
+			
+			for (int i = 0; i < limit; i++) {
+				if (e.vel < 0 && sideColl(livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE + i]) == true) {
 					e.vel = -e.vel;
 					if (e.type == 3) {
 						elimina = true;
 					}
+					break;
 				}
-				if (e.vel > 0 && sideColl(livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE], NULL)) {
+				if (e.vel > 0 && sideColl(livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE + i]) == true) {
 					e.vel = -e.vel;
 					if (e.type == 3) {
 						elimina = true;
 					}
-				}
-			}
-			else {
-				if (sideColl(livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE], livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE + 1])) {
-					e.vel = -e.vel;
-					if (e.type == 3) {
-						elimina = true;
-					}
-				}
-				if (sideColl(livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE], livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][e.r.top / BLOCK_SIZE + 1])) {
-					e.vel = -e.vel;
-					if (e.type == 3) {
-						elimina = true;
-					}
+					break;
 				}
 			}
 		}

@@ -1,22 +1,32 @@
-#include <iostream>
 #include <windows.h>
 #include <wincodec.h>
-#include <fstream>
 #include <d2d1.h>
 #include <iostream>
+#include <fstream>
+#include <iostream>
 #include <vector>
-#include "player.h"
 #include "pulsante.h"
+#include "player.h"
 #include "camera.h"
+#include "animation.h"
 
 using namespace std;
 using namespace D2D1;
 
 #pragma region variabili globali
 #define BLOCK_SIZE 32 // grandezza blocco
-int SCREEN_HEIGHT = 746; //altezza schermo
-int SCREEN_WIDTH = 1500; //larghezza schermo
+int SCREEN_HEIGHT = 775; //altezza schermo
+int SCREEN_WIDTH = 1440; //larghezza schermo
+int SCREEN_WIDTH_BLOCK = SCREEN_WIDTH / BLOCK_SIZE, SCREEN_HEIGHT_BLOCK = SCREEN_HEIGHT / BLOCK_SIZE; // per vedere la larghezza e altezza in blocks
 int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
+int prova = 0;
+short BLOCK_CODE = 100; // la grandezza in decimali del codice usato per i blocchi, ora 100 per poter usare 100 stili diversi per blocco
+// animazione idle del player
+
+animazione* playerAnim;// animazione del player per ogni singola azione
+
+short res = 0;//per resettare l'array dell'animazione quando cambia lo stato
+
 HRESULT p = CoInitialize(NULL);//funzione per tirare in ballo funzioni COM
 //factory direct 2d
 ID2D1Factory* pD2DFactory = NULL;
@@ -26,20 +36,21 @@ HRESULT hr = D2D1CreateFactory(
 );
 //render per direct 2d
 ID2D1HwndRenderTarget* pRT = NULL;
-//array di beush? USATI ORA SOLO PER NEMICI
-ID2D1SolidColorBrush* terrainBrushes[4];
-//bitmap per immagini
-ID2D1Bitmap* playerBitmapIdle = NULL;
-ID2D1Bitmap* terrainBitmap = NULL;
-ID2D1Bitmap* numberBitmap = NULL;
-ID2D1Bitmap* cuoriBitmap = NULL;
-ID2D1Bitmap* skyBitmap = NULL;
-ID2D1Bitmap* enemyBitmap = NULL;
 //variabili WIC
 IWICImagingFactory* wicFactory = NULL;
 IWICBitmapDecoder* wicDecoder = NULL;
 IWICBitmapFrameDecode* wicFrame = NULL;
 IWICFormatConverter* wicConverter = NULL;
+//array di beush? USATI ORA SOLO PER NEMICI
+ID2D1SolidColorBrush* terrainBrushes[4];
+//bitmap per immagini
+ID2D1Bitmap* playerBitmap = NULL;
+ID2D1Bitmap* terrainBitmap = NULL;
+ID2D1Bitmap* numberBitmap = NULL;
+ID2D1Bitmap* cuoriBitmap = NULL;
+ID2D1Bitmap* skyBitmap = NULL;
+ID2D1Bitmap* enemyBitmap = NULL;
+
 
 int ***livello, ***initialLiv, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
 int heightSize, *livSize;//altezza livello e lunghezza livello
@@ -83,7 +94,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			return -1;
 		}
 
-		// Creazione dei pennelli
+		// Creazione dei pennelli 
 		pRT->CreateSolidColorBrush(ColorF(ColorF::LightBlue), &terrainBrushes[0]);
 		pRT->CreateSolidColorBrush(ColorF(ColorF::Brown), &terrainBrushes[1]);
 		pRT->CreateSolidColorBrush(ColorF(ColorF::Green), &terrainBrushes[2]);
@@ -97,85 +108,39 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		RECT clientRect;
 		GetClientRect(hwnd, &clientRect);
 
-		pRT->BeginDraw();
+		pRT->BeginDraw();//inizia il disegno
 
-		//disegna sfondo
+		//disegna sfondo PROVVISORIO
 		pRT->DrawBitmap(skyBitmap,RectF(
 			clientRect.left,
 			clientRect.top,
 			clientRect.right,
 			clientRect.bottom),1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
 
-		// disegno livello
-		for (int i = floor(cam.posX/BLOCK_SIZE); i < floor(cam.posX / BLOCK_SIZE) + 50 && i < livSize[numeroLivello]; i++) {
-			for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-				switch (livello[numeroLivello][i][j]) {
-				case 0:
-					break;
-				case 2:
-					if (i < livSize[numeroLivello]-1 && i > 0 && livello[numeroLivello][i + 1][j] == 2 && livello[numeroLivello][i -1][j] == 2) {
-						pRT->DrawBitmap(terrainBitmap,
-							RectF(
-								i * BLOCK_SIZE - cam.posX,
-								j * BLOCK_SIZE,
-								(i + 1) * BLOCK_SIZE - cam.posX,
-								(j + 1) * BLOCK_SIZE
-							),
-							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16 * (livello[numeroLivello][i][j] - 1), 48, 16 * livello[numeroLivello][i][j])
-						);
-					}
-					else if (i < livSize[numeroLivello] - 1 && livello[numeroLivello][i + 1][j] == 2) {
-						pRT->DrawBitmap(terrainBitmap,
-							RectF(
-								i * BLOCK_SIZE - cam.posX,
-								j * BLOCK_SIZE,
-								(i + 1) * BLOCK_SIZE - cam.posX,
-								(j + 1) * BLOCK_SIZE
-							),
-							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16 * (livello[numeroLivello][i][j] - 1), 32, 16 * livello[numeroLivello][i][j])
-						);
-					}
-					else if (i > 0 && livello[numeroLivello][i - 1][j] == 2) {
-						pRT->DrawBitmap(terrainBitmap,
-							RectF(
-								i * BLOCK_SIZE - cam.posX,
-								j * BLOCK_SIZE,
-								(i + 1) * BLOCK_SIZE - cam.posX,
-								(j + 1) * BLOCK_SIZE
-							),
-							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(48, 16 * (livello[numeroLivello][i][j] - 1), 64, 16 * livello[numeroLivello][i][j])
-						);
-					}
-					else {
-						pRT->DrawBitmap(terrainBitmap,
-							RectF(
-								i * BLOCK_SIZE - cam.posX,
-								j * BLOCK_SIZE,
-								(i + 1) * BLOCK_SIZE - cam.posX,
-								(j + 1) * BLOCK_SIZE
-							),
-							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * (livello[numeroLivello][i][j] - 1), 16, 16 * livello[numeroLivello][i][j])
-						);
-					}
-					break;
-				default:
-					pRT->DrawBitmap(terrainBitmap,
-						RectF(
-							i * BLOCK_SIZE - cam.posX,
-							j * BLOCK_SIZE,
-							(i + 1) * BLOCK_SIZE - cam.posX,
-							(j + 1) * BLOCK_SIZE
-						),
-						1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * (livello[numeroLivello][i][j] - 1), 16, 16 * livello[numeroLivello][i][j])
-					);
-					break;
-				}
+		// disegno livello FINITO
+		for (int i = floor(cam.posX/BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
+			for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
+				int val = livello[numeroLivello][i][j];//prende il valore totale
+				int cod = (int)floor(val / BLOCK_CODE);//prende il gruppo del blocco
+				int off = val % BLOCK_CODE; // da un offset * 16
+
+				pRT->DrawBitmap(terrainBitmap,
+					RectF(
+						i * BLOCK_SIZE - cam.posX,
+						j * BLOCK_SIZE,
+						(i + 1) * BLOCK_SIZE - cam.posX,
+						(j + 1) * BLOCK_SIZE
+					),
+					1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16*(cod), 16 * (off + 1), 16*(cod+1)) // disegna a seconda dei valori dati il blocco giusto
+				);
 			}
 		}
+		prova = 0;
 
 		//disegno enemy
 		for (int i = 0; i < enemy[numeroLivello].size(); i++) {
 			entity e = enemy[numeroLivello][i];
+			//hotbox
 				pRT->DrawRectangle(
 					RectF(
 						e.r.left - cam.posX,
@@ -183,6 +148,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						e.r.right - cam.posX,
 						e.r.bottom),
 					terrainBrushes[3]);
+				// da sistemare
 					switch (e.type) {
 					case 2:
 						break;
@@ -283,13 +249,13 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		}
 
 
-		//disegno player
-		if(playerBitmapIdle && player.immunity % 2 == 0)
-		pRT->DrawBitmap(playerBitmapIdle, RectF(
+		//disegno player + hitbox
+		if(playerBitmap && player.immunity % 2 == 0)
+		pRT->DrawBitmap(playerBitmap, RectF(
 			player.r.left - cam.posX - 4,
 			player.r.top,
 			player.r.right-cam.posX + 4,
-			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(0, 0, 16, 16));
+			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(0 + playerAnim[player.state].width * playerAnim[player.state].ind, 16 * player.state + 48 * player.facingLeft, 16 + playerAnim[player.state].width * playerAnim[player.state].ind, 16 + 16  * player.state + 48 * player.facingLeft));
 		pRT->DrawRectangle(
 			RectF(
 				player.r.left - cam.posX,
@@ -361,21 +327,43 @@ void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-void addEnemy(int levelNum, int x, int y, double vel, double jmpDec, double jmpPow,int baseState, short type, short framePerAction) {
+void addEnemy(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, short framePerAction) {
 	enemy[levelNum].push_back({
-		{x, y, x+BLOCK_SIZE, y+BLOCK_SIZE},  // r
+		{x, y, x+width, y+height},  // r
 		vel,                  // vel
 		jmpDec,                   // jmpDec
 		jmpPow,                    //jmpPow
 		 baseState,        // state
 		type,					//type
 		framePerAction,					//frame per azione
-		framePerAction					//variabile per la inizializzazione dei frame
+		framePerAction,					//variabile per la inizializzazione dei frame
+		(width % BLOCK_SIZE == 0) ? width / BLOCK_SIZE : width / BLOCK_SIZE + 1,
+		(height % BLOCK_SIZE == 0) ? height / BLOCK_SIZE : height / BLOCK_SIZE + 1
 		});
 }
 
 //funzione main
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
+
+	playerAnim = new animazione[3];
+
+	//animazione idle
+	newAnimation(0, 0, 16, 16, 3, playerAnim[state::idle]);
+	frameSprite(0, 20, playerAnim[state::idle]);
+	frameSprite(1, 10, playerAnim[state::idle]);
+	frameSprite(2, 20, playerAnim[state::idle]);
+
+	//animazione jumping
+	newAnimation(0, 0, 16, 16, 3, playerAnim[state::jumping]);
+	frameSprite(0, 1, playerAnim[state::jumping]);
+	frameSprite(1, 1, playerAnim[state::jumping]);
+
+	//animazione walking
+	newAnimation(0, 0, 16, 16, 3, playerAnim[state::walking]);
+	frameSprite(0, 20, playerAnim[state::walking]);
+	frameSprite(1, 20, playerAnim[state::walking]);
+	frameSprite(2, 20, playerAnim[state::walking]);
+
 	//creo la console
 	if (wS.console) {
 		AllocConsole();
@@ -387,6 +375,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 	//mi prendo il file da dove leggere i livelli
 	ifstream file;
+	ofstream ofile;
+	ofile.open("Output.txt");
 	file.open("Livelli.txt");
 
 	//roba per la bitmap di directD2
@@ -409,17 +399,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		livello[i] = new int* [livSize[i]];//inizializzazione livello
 		initialLiv[i] = new int* [livSize[i]];//inizializzazione inizio livello
 		for (int j = 0; j < livSize[i]; j++) {
-			livello[i][j] = new int[SCREEN_HEIGHT / BLOCK_SIZE];
-			initialLiv[i][j] = new int[SCREEN_HEIGHT / BLOCK_SIZE];
+			livello[i][j] = new int[SCREEN_HEIGHT_BLOCK];
+			initialLiv[i][j] = new int[SCREEN_HEIGHT_BLOCK];
 		}
 	}
 
-	addEnemy(0, 200, 180, 1, 0, 0, state::walking, 1, 0);
-	addEnemy(0, 200, 300, 0, 0, 0, state::walking, 4, 0);
-	addEnemy(0, 230, 300, 0, 0, 0, state::walking, 5, 600);
-	addEnemy(0, 240, 300, -1, 1, 0, state::walking, 0, 0);
-	addEnemy(0, 9 * BLOCK_SIZE, 13 * BLOCK_SIZE, 0, 0, 0, state::walking, 2, 120);
-	addEnemy(0, 1600, 300, -1, 1, 0, state::walking, 0, 0);
+	addEnemy(0, 260, 180,64,32, 1, 0, 0, state::walking, 1, 0);
+	addEnemy(0, 200, 300, 32, 32, 0, 0, 0, state::walking, 4, 0);
+	addEnemy(0, 230, 300, 32, 32, 0, 0, 0, state::walking, 5, 600);
+	addEnemy(0, 240, 300, 32, 32, -1, 1, 0, state::walking, 0, 0);
+	addEnemy(0, 9 * BLOCK_SIZE, 13 * BLOCK_SIZE, 32, 32, 0, 0, 0, state::walking, 2, 120);
+	addEnemy(0, 1600, 300, 32, 32, -1, 1, 0, state::walking, 0, 0);
 
 	for (int f = 0; f < quantitaLivelli; f++) {
 		initialArr[f] = enemy[f];
@@ -428,7 +418,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	
 	// mettiamo nel livello i numeri dei blocchi
 	for (int f = 0; f < 2; f++) {
-		for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
+		for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
 			for (int i = 0; i < livSize[f]; i++) {
 				file >> livello[f][i][j];
 			}
@@ -438,19 +428,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	
 
 	//trascrivo su intial liv
-	for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-		for (int f = 0; f < quantitaLivelli; f++) {
+	for (int f = 0; f < quantitaLivelli; f++) {
+		for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
 			for (int i = 0; i < livSize[f]; i++) {
 				initialLiv[f][i][j] = livello[f][i][j];
-				initialLiv[f][i][j] = livello[f][i][j];
+				//ofile << livello[f][i][j] +14 << "\t";
 			}
+			//ofile << endl;
 		}
+		//ofile << endl;
 	}
 
 	//calcolo tempo per un frame
 	double fps = 1000000 / wS.MAX_FPS;
 
-	
+	//calcolo misure player
+
+	int PLAYER_WIDTH = player.r.right - player.r.left;
+	int PLAYER_HEIGHT = player.r.bottom - player.r.top;
+	int pWidthBlock = (PLAYER_WIDTH % BLOCK_SIZE == 0) ? PLAYER_WIDTH / BLOCK_SIZE : PLAYER_WIDTH / BLOCK_SIZE +1;
+	int pHeightBlock = (PLAYER_HEIGHT % BLOCK_SIZE == 0) ? PLAYER_HEIGHT / BLOCK_SIZE : PLAYER_HEIGHT / BLOCK_SIZE+ 1;
 
 	//registro la finestra
 
@@ -466,7 +463,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	//SetWindowPos(hW,NULL, 0, 0, SCREEN_WIDTH * 1.5, SCREEN_HEIGHT * 1.5,SWP_NOMOVE);
 	ShowWindow(hW, SW_NORMAL);
 	// creazione bitmaps
-	createBitmap(L"sprites/idle.png", &playerBitmapIdle);
+	createBitmap(L"sprites/player.png", &playerBitmap);
 	createBitmap(L"sprites/terreno.png", &terrainBitmap);
 	createBitmap(L"sprites/sky.png", &skyBitmap);
 	createBitmap(L"sprites/numeri.png", &numberBitmap);
@@ -523,7 +520,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			}
 			
 
-			movimentoPlayer(livello[numeroLivello], initialLiv[numeroLivello], BLOCK_SIZE, enemy[numeroLivello], enemy[numeroLivello].size(), SCREEN_WIDTH, livSize[numeroLivello], initialArr[numeroLivello], score, SCREEN_HEIGHT, tempo);
+			movimentoPlayer(livello[numeroLivello], initialLiv[numeroLivello], BLOCK_SIZE, enemy[numeroLivello], enemy[numeroLivello].size(), SCREEN_WIDTH, livSize[numeroLivello], initialArr[numeroLivello], score, SCREEN_HEIGHT, tempo, pWidthBlock, pHeightBlock);
 			toggleEv();
 			if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
 				numeroLivello++;
@@ -536,7 +533,46 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			UpdateWindow(hW);
 			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
 			ent++;
+
+			// variabile del reset
+
+
+			//animazioni player
+			{
+				if (player.state != res) {
+					playerAnim[res].fpF[playerAnim[res].ind] = playerAnim[res].inifpF[playerAnim[res].ind];
+					playerAnim[res].ind = 0;
+					res = player.state;
+				}
+
+				switch (player.state)
+				{
+				case state::walking:
+					playerAnim[player.state].fpF[playerAnim[player.state].ind] -= abs(player.vel / 2);
+					break;
+				case state::jumping:
+					if (playerAnim[player.state].ind == 0 && player.jmpPow <= 0)
+						playerAnim[player.state].fpF[playerAnim[player.state].ind]--;
+					break;
+				default:
+					playerAnim[player.state].fpF[playerAnim[player.state].ind]--;
+					break;
+				}
+
+				//controllo per cambiare frame
+				if (playerAnim[player.state].fpF[playerAnim[player.state].ind] <= 0) {
+					playerAnim[player.state].fpF[playerAnim[player.state].ind] = playerAnim[player.state].inifpF[playerAnim[player.state].ind];
+					if (playerAnim[player.state].ind != playerAnim[player.state].size - 1) {
+						playerAnim[player.state].ind++;
+					}
+					else {
+						playerAnim[player.state].ind = 0;
+					}
+				}
+			}
 		}
+
+		// per aumentare il contatore del tempo
 		if (ent >= wS.MAX_FPS) {
 			tempo++;
 			ent = 0;

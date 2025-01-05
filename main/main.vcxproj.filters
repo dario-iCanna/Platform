@@ -30,6 +30,9 @@
     <ClCompile Include="camera.cpp">
       <Filter>File di intestazione</Filter>
     </ClCompile>
+    <ClCompile Include="animation.cpp">
+      <Filter>File di intestazione</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="player.h">
@@ -38,11 +41,11 @@
     <ClInclude Include="camera.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
+    <ClInclude Include="animation.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\OneDrive\Desktop\idle.png">
-      <Filter>File di origine</Filter>
-    </Image>
     <Image Include="sprites\terreno.png">
       <Filter>File di origine</Filter>
     </Image>
@@ -58,9 +61,15 @@
     <Image Include="sprites\enemy.png">
       <Filter>File di origine</Filter>
     </Image>
+    <Image Include="sprites\player.png">
+      <Filter>File di origine</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Livelli.txt">
+      <Filter>File di origine</Filter>
+    </Text>
+    <Text Include="output.txt">
       <Filter>File di origine</Filter>
     </Text>
   </ItemGroup>

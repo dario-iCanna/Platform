@@ -133,24 +133,27 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="animation.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="pulsante.cpp" />
     <ClCompile Include="pulsante.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
+    <ClInclude Include="animation.h" />
     <ClInclude Include="player.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\OneDrive\Desktop\idle.png" />
     <Image Include="sprites\cuori.png" />
     <Image Include="sprites\enemy.png" />
+    <Image Include="sprites\player.png" />
     <Image Include="sprites\numeri.png" />
     <Image Include="sprites\sky.png" />
     <Image Include="sprites\terreno.png" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Livelli.txt" />
+    <Text Include="output.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
