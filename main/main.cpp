@@ -3,6 +3,7 @@
 #include <d2d1.h>
 #include <iostream>
 #include <fstream>
+#include <string> 
 #include <iostream>
 #include <vector>
 #include "pulsante.h"
@@ -20,6 +21,7 @@ int SCREEN_WIDTH = 1440; //larghezza schermo
 int SCREEN_WIDTH_BLOCK = SCREEN_WIDTH / BLOCK_SIZE, SCREEN_HEIGHT_BLOCK = SCREEN_HEIGHT / BLOCK_SIZE; // per vedere la larghezza e altezza in blocks
 int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
 int prova = 0;
+bool ripristina = false;
 short BLOCK_CODE = 100; // la grandezza in decimali del codice usato per i blocchi, ora 100 per poter usare 100 stili diversi per blocco
 // animazione idle del player
 
@@ -46,7 +48,7 @@ ID2D1SolidColorBrush* terrainBrushes[4];
 //bitmap per immagini
 ID2D1Bitmap* playerBitmap = NULL;
 ID2D1Bitmap* terrainBitmap = NULL;
-ID2D1Bitmap* numberBitmap = NULL;
+ID2D1Bitmap* fontBitmap = NULL;
 ID2D1Bitmap* cuoriBitmap = NULL;
 ID2D1Bitmap* skyBitmap = NULL;
 ID2D1Bitmap* enemyBitmap = NULL;
@@ -55,7 +57,9 @@ ID2D1Bitmap* enemyBitmap = NULL;
 int ***livello, ***initialLiv, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
 int heightSize, *livSize;//altezza livello e lunghezza livello
 
-vector<vector<entity>> enemy,initialArr; // array per i nemici
+vector<vector<entity>> entities; // array per i nemici
+int limit = 0;
+vector<entity> screenEn; // array tmporaneo
 #pragma endregion
 
 //variabili di funzionamento
@@ -65,7 +69,7 @@ struct WINDSTUFF {
 	const double MAX_FPS = 60;
 }wS; // variabili per il gameloop
 
- #pragma region gestione_eventi
+#pragma region gestione_eventi
 LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 {
 
@@ -137,9 +141,8 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		}
 		prova = 0;
 
-		//disegno enemy
-		for (int i = 0; i < enemy[numeroLivello].size(); i++) {
-			entity e = enemy[numeroLivello][i];
+		//disegno enttity
+		for (entity e : screenEn) {
 			//hotbox
 				pRT->DrawRectangle(
 					RectF(
@@ -148,72 +151,62 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						e.r.right - cam.posX,
 						e.r.bottom),
 					terrainBrushes[3]);
-				// da sistemare
-					switch (e.type) {
-					case 2:
-						break;
-					case 4://disegno il cuore nel powerup
-						pRT->DrawBitmap(cuoriBitmap, RectF(
-							e.r.left - cam.posX,
-							e.r.top,
-							e.r.right - cam.posX,
-							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30, 0, 60, 30));
-						break;
-					default:
+			// da sistemare
+			switch (e.type) {
+			case 2:
+				break;
+			/*case 4://disegno il cuore nel powerup
+				pRT->DrawBitmap(cuoriBitmap, RectF(
+					e.r.left - cam.posX,
+					e.r.top,
+					e.r.right - cam.posX,
+					e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30, 0, 60, 30));
+				break;*/
+			default:
+
+				if(e.eBlockWidth > 1)
+					for (int i = 0; i < e.eBlockWidth; i++) {
 						pRT->DrawBitmap(enemyBitmap, RectF(
-							e.r.left - cam.posX,
+							e.r.left - cam.posX + 32 * i,
 							e.r.top,
-							e.r.right - cam.posX,
-							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 30, 30));
-						break;
+							e.r.left - cam.posX + 32 * (i + 1),
+							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * e.type, 16, 16 * (e.type + 1)));
 					}
+				else {
+					int height = e.r.bottom - e.r.top;
+					pRT->DrawBitmap(enemyBitmap, RectF(
+						e.r.left - cam.posX,
+						e.r.top - (BLOCK_SIZE - height)/2,
+						e.r.right - cam.posX,
+						e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * e.type, 16, 16 * (e.type + 1)));
+				}
+				break;
+			}
 				
 		}
 
-		//disegno tempo
-		int cifre = (int)(floor(log10(tempo) + 1));
-		if (tempo == 0) {
-			pRT->DrawBitmap(numberBitmap, RectF(
-				0,
-				0,
-				10,
-				10), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 10, 10));
-		}
-		else {
-			for (int i = 0; i < cifre; i++) {
-				int f = floor((tempo % (int)(pow(10, cifre- i))) / (pow(10, cifre - 1 - i)));
-				pRT->DrawBitmap(numberBitmap, RectF(
-					10 * i,
-					0,
-					10 * (i + 1),
-					10), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(10 * f, 0, 10*(f+1), 10));
-			}
+		//disegno tempo (fatto il to string/ da stampare)
+		string timeS = "TIME:" + to_string(tempo);
+
+		for (int i = 0; i < timeS.size(); i++) {
+			pRT->DrawBitmap(fontBitmap, RectF(
+				16 * (i),
+				16,
+				16 * (i + 1),
+				32), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (timeS[i] - 48), 0, 16 * (timeS[i] - 48 + 1), 16));
 		}
 		
 		//disegno punteggio
-		pRT->DrawBitmap(terrainBitmap, RectF(
-			0,
-			20,
-			20,
-			40), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(90, 0, 120, 30));
-		cifre = (int)(floor(log10(score) + 1));
-		if (score == 0) {
-			pRT->DrawBitmap(numberBitmap, RectF(
-				20,
-				26,
-				30,
-				36), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 10, 10));
+		string scoreS = "SCORE:"+to_string(score);
+
+		for (int i = 0; i < scoreS.size(); i++) {
+			pRT->DrawBitmap(fontBitmap, RectF(
+				16 * (i),
+				0,
+				16 * (i + 1),
+				16), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (scoreS[i] - 48), 0, 16 * (scoreS[i] - 48 + 1), 16));
 		}
-		else {
-			for (int i = 0; i < cifre; i++) {
-				int f = floor((score % (int)(pow(10, cifre - i))) / (pow(10, cifre - 1 - i)));
-				pRT->DrawBitmap(numberBitmap, RectF(
-					10 * (i+2),
-					26,
-					10 * (i + 3),
-					36), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(10 * f, 0, 10 * (f + 1), 10));
-			}
-		}
+
 
 		//disgno cuori
 		for (int i = 1; i <= player.maxLife; i++) {
@@ -233,20 +226,6 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			}
 			
 		}
-		
-		//disegno velocità player
-		if (player.vel != 0)
-			cifre = (int)(floor(log10(abs(player.vel * 100)) + 1));
-		else
-			cifre = 0;
-		for (int i = 0; i < cifre; i++) {
-			int f = floor(((int)(abs(player.vel * 100)) % (int)(pow(10, cifre - i))) / (pow(10, cifre - 1 - i)));
-			pRT->DrawBitmap(numberBitmap, RectF(
-				player.r.left - cam.posX - 2 + 10 * i,
-				player.r.top + 50,
-				player.r.left - cam.posX - 2 + 10 * (i + 1),
-				player.r.top + 40), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(10 * f, 0, 10 * (f + 1), 10));
-		}
 
 
 		//disegno player + hitbox
@@ -256,13 +235,13 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			player.r.top,
 			player.r.right-cam.posX + 4,
 			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(0 + playerAnim[player.state].width * playerAnim[player.state].ind, 16 * player.state + 48 * player.facingLeft, 16 + playerAnim[player.state].width * playerAnim[player.state].ind, 16 + 16  * player.state + 48 * player.facingLeft));
-		pRT->DrawRectangle(
+		/*pRT->DrawRectangle(
 			RectF(
 				player.r.left - cam.posX,
 				player.r.top,
 				player.r.right - cam.posX,
 				player.r.bottom),
-			terrainBrushes[3]);
+			terrainBrushes[3]);*/
 		
 
 		pRT->EndDraw();
@@ -327,16 +306,15 @@ void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-void addEnemy(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, short framePerAction) {
-	enemy[levelNum].push_back({
+void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, vector<tuple<short,short,short>> actions) {
+	entities[levelNum].push_back({
 		{x, y, x+width, y+height},  // r
 		vel,                  // vel
 		jmpDec,                   // jmpDec
 		jmpPow,                    //jmpPow
 		 baseState,        // state
 		type,					//type
-		framePerAction,					//frame per azione
-		framePerAction,					//variabile per la inizializzazione dei frame
+		actions,					//azioni
 		(width % BLOCK_SIZE == 0) ? width / BLOCK_SIZE : width / BLOCK_SIZE + 1,
 		(height % BLOCK_SIZE == 0) ? height / BLOCK_SIZE : height / BLOCK_SIZE + 1
 		});
@@ -389,8 +367,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	//creo la grandezza giusta dell'array dei nemici
-	enemy.resize(quantitaLivelli);
-	initialArr.resize(quantitaLivelli);
+	entities.resize(quantitaLivelli);
 
 	// Allocazione dinamica della matrice si creano 2 livelli
 	livello = new int** [quantitaLivelli];
@@ -404,16 +381,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 	}
 
-	addEnemy(0, 260, 180,64,32, 1, 0, 0, state::walking, 1, 0);
-	addEnemy(0, 200, 300, 32, 32, 0, 0, 0, state::walking, 4, 0);
-	addEnemy(0, 230, 300, 32, 32, 0, 0, 0, state::walking, 5, 600);
-	addEnemy(0, 240, 300, 32, 32, -1, 1, 0, state::walking, 0, 0);
-	addEnemy(0, 9 * BLOCK_SIZE, 13 * BLOCK_SIZE, 32, 32, 0, 0, 0, state::walking, 2, 120);
-	addEnemy(0, 1600, 300, 32, 32, -1, 1, 0, state::walking, 0, 0);
 
-	for (int f = 0; f < quantitaLivelli; f++) {
-		initialArr[f] = enemy[f];
-	}
+	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione
+	vector<tuple<short, short, short>> x;
+	x.push_back({ 1,60,60 });
+
+	addEntity(0, 200, 300, 32, 32, 0, 0, 0, state::walking, 4, (vector<tuple<short, short, short>>)NULL);
+	addEntity(0, 230, 300, 32, 32, 0, 0, 0, state::walking, 5, (vector<tuple<short, short, short>>)NULL);
+	addEntity(0, 240, 300, 32, 32, -1, 1, 0, state::walking, 0, (vector<tuple<short, short, short>>)NULL);
+	addEntity(0, 260, 180,64,32, 0, 0, -1, state::walking, 1, x);
+	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, (vector<tuple<short, short, short>>)NULL);
+	addEntity(0, 1600, 300, 32, 32, -1, 1, 0, state::walking, 0, (vector<tuple<short, short, short>>)NULL);
 
 	
 	// mettiamo nel livello i numeri dei blocchi
@@ -446,8 +424,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	int PLAYER_WIDTH = player.r.right - player.r.left;
 	int PLAYER_HEIGHT = player.r.bottom - player.r.top;
-	int pWidthBlock = (PLAYER_WIDTH % BLOCK_SIZE == 0) ? PLAYER_WIDTH / BLOCK_SIZE : PLAYER_WIDTH / BLOCK_SIZE +1;
-	int pHeightBlock = (PLAYER_HEIGHT % BLOCK_SIZE == 0) ? PLAYER_HEIGHT / BLOCK_SIZE : PLAYER_HEIGHT / BLOCK_SIZE+ 1;
+	player.widthBlock = (PLAYER_WIDTH % BLOCK_SIZE == 0) ? PLAYER_WIDTH / BLOCK_SIZE : PLAYER_WIDTH / BLOCK_SIZE +1;
+	player.heightBlock = (PLAYER_HEIGHT % BLOCK_SIZE == 0) ? PLAYER_HEIGHT / BLOCK_SIZE : PLAYER_HEIGHT / BLOCK_SIZE+ 1;
 
 	//registro la finestra
 
@@ -466,7 +444,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	createBitmap(L"sprites/player.png", &playerBitmap);
 	createBitmap(L"sprites/terreno.png", &terrainBitmap);
 	createBitmap(L"sprites/sky.png", &skyBitmap);
-	createBitmap(L"sprites/numeri.png", &numberBitmap);
+	createBitmap(L"sprites/font.png", &fontBitmap);
 	createBitmap(L"sprites/cuori.png", &cuoriBitmap);
 	createBitmap(L"sprites/enemy.png", &enemyBitmap);
 
@@ -490,7 +468,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		deltaTime =  end.QuadPart - start.QuadPart;
 		//controllo se il tempo è maggiore del frame per secondo
 		if (deltaTime >= fps) {
-			if (player.immunity < player.initialImmunity && player.immunity != 0)
+			if (player.immunity < player.initialImmunity && player.immunity != 0) 
 				player.immunity--;
 			else if (player.immunity == 0)
 				player.immunity = player.initialImmunity;
@@ -520,13 +498,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			}
 			
 
-			movimentoPlayer(livello[numeroLivello], initialLiv[numeroLivello], BLOCK_SIZE, enemy[numeroLivello], enemy[numeroLivello].size(), SCREEN_WIDTH, livSize[numeroLivello], initialArr[numeroLivello], score, SCREEN_HEIGHT, tempo, pWidthBlock, pHeightBlock);
+			movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score);
 			toggleEv();
 			if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
 				numeroLivello++;
-				ripristino(enemy[numeroLivello], enemy[numeroLivello].size(), initialArr[numeroLivello], livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello]);
+				ripristina = true;
+			}
+			if (ripristina) {
+				ripristino(screenEn,limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello]);
 				score = 0;
 				tempo = 0;
+				ripristina = false;
 			}
 			//RedrawWindow(hW, NULL, NULL, RDW_INTERNALPAINT | RDW_UPDATENOW | RDW_INVALIDATE);
 			InvalidateRect(hW, NULL, TRUE);
