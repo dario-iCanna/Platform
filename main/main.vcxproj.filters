@@ -30,7 +30,7 @@
     <ClCompile Include="camera.cpp">
       <Filter>File di intestazione</Filter>
     </ClCompile>
-    <ClCompile Include="animation.cpp">
+    <ClCompile Include="animazione.cpp">
       <Filter>File di intestazione</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,7 +41,7 @@
     <ClInclude Include="camera.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
-    <ClInclude Include="animation.h">
+    <ClInclude Include="animazione.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>

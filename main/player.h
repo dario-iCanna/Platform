@@ -3,7 +3,9 @@
 #include <wincodec.h>
 #include <d2d1.h>
 #include <vector>
+#include <string>
 #include <unordered_map>
+#include "animazione.h"
 
 using namespace std;
 
@@ -44,9 +46,17 @@ extern struct entity
 	int state;//usato per collisioniNshit
 	short type;//0 per normal 1 per piattaforme mobili 2 per cannone 3 per proiettile 4 per cuore 5 power up
 	vector<tuple<short, short, short>> actions;
+	animazione animations;
 	int eBlockWidth;
 	int eBlockHeight;
+	bool facingLeft;
+	string animIndex;
+	bool differentSideAnimation;
 };
+
+//aggiungere azione al nemoco
+void addActionToEnemy(entity& e, short actionType, short firstAction, short actionTime);
+
 //stato del player
 enum state{
 	idle = 0,

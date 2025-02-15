@@ -133,14 +133,14 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="camera.cpp" />
-    <ClCompile Include="animation.cpp" />
+    <ClCompile Include="animazione.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="pulsante.cpp" />
     <ClCompile Include="pulsante.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
-    <ClInclude Include="animation.h" />
+    <ClInclude Include="animazione.h" />
     <ClInclude Include="player.h" />
   </ItemGroup>
   <ItemGroup>

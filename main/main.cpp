@@ -5,11 +5,12 @@
 #include <fstream>
 #include <string> 
 #include <iostream>
+#include <unordered_map>
 #include <vector>
 #include "pulsante.h"
 #include "player.h"
+#include "animazione.h"
 #include "camera.h"
-#include "animation.h"
 
 using namespace std;
 using namespace D2D1;
@@ -24,8 +25,6 @@ int prova = 0;
 bool ripristina = false;
 short BLOCK_CODE = 100; // la grandezza in decimali del codice usato per i blocchi, ora 100 per poter usare 100 stili diversi per blocco
 // animazione idle del player
-
-animazione* playerAnim;// animazione del player per ogni singola azione
 
 short res = 0;//per resettare l'array dell'animazione quando cambia lo stato
 
@@ -57,6 +56,9 @@ ID2D1Bitmap* enemyBitmap = NULL;
 int ***livello, ***initialLiv, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
 int heightSize, *livSize;//altezza livello e lunghezza livello
 
+
+animazione playerAnim; // animazione player
+string animIndex; // indice per l'animazione del player
 vector<vector<entity>> entities; // array per i nemici
 int limit = 0;
 vector<entity> screenEn; // array tmporaneo
@@ -99,7 +101,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		}
 
 		// Creazione dei pennelli 
-		pRT->CreateSolidColorBrush(ColorF(ColorF::LightBlue), &terrainBrushes[0]);
+		pRT->CreateSolidColorBrush(ColorF(ColorF::Black), &terrainBrushes[0]);
 		pRT->CreateSolidColorBrush(ColorF(ColorF::Brown), &terrainBrushes[1]);
 		pRT->CreateSolidColorBrush(ColorF(ColorF::Green), &terrainBrushes[2]);
 		pRT->CreateSolidColorBrush(ColorF(ColorF::Red), &terrainBrushes[3]);
@@ -150,38 +152,28 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						e.r.top,
 						e.r.right - cam.posX,
 						e.r.bottom),
-					terrainBrushes[3]);
-			// da sistemare
-			switch (e.type) {
-			case 2:
-				break;
-			/*case 4://disegno il cuore nel powerup
-				pRT->DrawBitmap(cuoriBitmap, RectF(
-					e.r.left - cam.posX,
-					e.r.top,
-					e.r.right - cam.posX,
-					e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30, 0, 60, 30));
-				break;*/
-			default:
-
-				if(e.eBlockWidth > 1)
+					terrainBrushes[0]);
+				if (e.eBlockWidth > 1)
 					for (int i = 0; i < e.eBlockWidth; i++) {
 						pRT->DrawBitmap(enemyBitmap, RectF(
 							e.r.left - cam.posX + 32 * i,
 							e.r.top,
 							e.r.left - cam.posX + 32 * (i + 1),
-							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * e.type, 16, 16 * (e.type + 1)));
+							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
 					}
 				else {
+				if (existsAnim(e.animations,e.animIndex)) {
 					int height = e.r.bottom - e.r.top;
+					int width = e.r.right - e.r.left;
 					pRT->DrawBitmap(enemyBitmap, RectF(
-						e.r.left - cam.posX,
-						e.r.top - (BLOCK_SIZE - height)/2,
-						e.r.right - cam.posX,
-						e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16 * e.type, 16, 16 * (e.type + 1)));
+						e.r.left - cam.posX - (BLOCK_SIZE - width) / 2,
+						e.r.top - (BLOCK_SIZE - height) / 2,
+						e.r.right - cam.posX + (BLOCK_SIZE - width) / 2,
+						e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
+
 				}
-				break;
-			}
+				}
+
 				
 		}
 
@@ -234,14 +226,15 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			player.r.left - cam.posX - 4,
 			player.r.top,
 			player.r.right-cam.posX + 4,
-			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(0 + playerAnim[player.state].width * playerAnim[player.state].ind, 16 * player.state + 48 * player.facingLeft, 16 + playerAnim[player.state].width * playerAnim[player.state].ind, 16 + 16  * player.state + 48 * player.facingLeft));
-		/*pRT->DrawRectangle(
+			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(getAnimX(playerAnim,animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex)  *getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex), getAnimX(playerAnim, animIndex) + getAnimWidth(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim,animIndex)), getAnimY(playerAnim, animIndex) + getAnimHeight(playerAnim, animIndex)));
+		
+		pRT->DrawRectangle(
 			RectF(
 				player.r.left - cam.posX,
 				player.r.top,
 				player.r.right - cam.posX,
 				player.r.bottom),
-			terrainBrushes[3]);*/
+			terrainBrushes[3]);
 		
 
 		pRT->EndDraw();
@@ -306,41 +299,43 @@ void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, vector<tuple<short,short,short>> actions) {
+void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim) {
+
+	vector<tuple<short, short, short>> actions;
+	actions = {};
 	entities[levelNum].push_back({
-		{x, y, x+width, y+height},  // r
+		{x, y, x + width, y + height},  // r
 		vel,                  // vel
 		jmpDec,                   // jmpDec
 		jmpPow,                    //jmpPow
 		 baseState,        // state
 		type,					//type
-		actions,					//azioni
+		actions,//azioniù
+		{},
 		(width % BLOCK_SIZE == 0) ? width / BLOCK_SIZE : width / BLOCK_SIZE + 1,
-		(height % BLOCK_SIZE == 0) ? height / BLOCK_SIZE : height / BLOCK_SIZE + 1
+		(height % BLOCK_SIZE == 0) ? height / BLOCK_SIZE : height / BLOCK_SIZE + 1,
+		true,
+		"",
+		differentSideAnim
 		});
 }
 
 //funzione main
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
 
-	playerAnim = new animazione[3];
-
 	//animazione idle
-	newAnimation(0, 0, 16, 16, 3, playerAnim[state::idle]);
-	frameSprite(0, 20, playerAnim[state::idle]);
-	frameSprite(1, 10, playerAnim[state::idle]);
-	frameSprite(2, 20, playerAnim[state::idle]);
-
-	//animazione jumping
-	newAnimation(0, 0, 16, 16, 3, playerAnim[state::jumping]);
-	frameSprite(0, 1, playerAnim[state::jumping]);
-	frameSprite(1, 1, playerAnim[state::jumping]);
-
-	//animazione walking
-	newAnimation(0, 0, 16, 16, 3, playerAnim[state::walking]);
-	frameSprite(0, 20, playerAnim[state::walking]);
-	frameSprite(1, 20, playerAnim[state::walking]);
-	frameSprite(2, 20, playerAnim[state::walking]);
+	newAnimation(playerAnim,0, 0, 16, 16, "idle");
+	addFrame(playerAnim, 60, "idle");
+	addFrame(playerAnim, 10, "idle");
+	animIndex = "idle";
+	newAnimation(playerAnim, 0, 32, 16, 16, "walking");
+	addFrame(playerAnim, 30, "walking");
+	addFrame(playerAnim, 30, "walking");
+	addFrame(playerAnim, 30, "walking");
+	newAnimation(playerAnim, 0, 16, 16, 16, "ascending");
+	addFrame(playerAnim, 30, "ascending");
+	newAnimation(playerAnim, 32, 16, 16, 16, "descending");
+	addFrame(playerAnim, 30, "descending");
 
 	//creo la console
 	if (wS.console) {
@@ -383,15 +378,93 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 
 	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione
-	vector<tuple<short, short, short>> x;
-	x.push_back({ 1,60,60 });
 
-	addEntity(0, 200, 300, 32, 32, 0, 0, 0, state::walking, 4, (vector<tuple<short, short, short>>)NULL);
-	addEntity(0, 230, 300, 32, 32, 0, 0, 0, state::walking, 5, (vector<tuple<short, short, short>>)NULL);
-	addEntity(0, 240, 300, 32, 32, -1, 1, 0, state::walking, 0, (vector<tuple<short, short, short>>)NULL);
-	addEntity(0, 260, 180,64,32, 0, 0, -1, state::walking, 1, x);
-	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, (vector<tuple<short, short, short>>)NULL);
-	addEntity(0, 1600, 300, 32, 32, -1, 1, 0, state::walking, 0, (vector<tuple<short, short, short>>)NULL);
+	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 0, 0);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 0, 0);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "idle";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 64, 16, 16, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 100, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+
+	addEntity(0, 230, 300, 16, 32, 0, 0, 0, state::walking, 4, false);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 600, 1);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "idle";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 80, 16, 16, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 100, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
+
+
+	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::walking, 0, true);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 1, 0);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 500, 500, 100);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 601, 525, 100);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 0, 16, 16, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "idle");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 32, 0, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
+
+
+	addEntity(0, 260, 180,64,32, 0, 0, -1, state::walking, 1, false);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 100, 70, 70);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
+
+
+	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 212, 120, 120);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 32, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
+
+
+
+	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 320, 160, 300);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 0, 16, 16, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "idle");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 32, 0, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 128, 0, 16, 16, "ascending");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "ascending");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
+
+
+	addEntity(0, 1600, 300, 20, 32, -1, 1, 0, state::walking, 0, true);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 205, 160, 300);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 0, 16, 16, "idle");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "idle");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 32, 0, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 128, 0, 16, 16, "ascending");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "ascending");
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
 
 	
 	// mettiamo nel livello i numeri dei blocchi
@@ -484,7 +557,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				else if (i.second == 0) {
 					// si guarda di che tipo è il power up e si reversa la sua azione
 					switch (i.first) {
-					case 5:
+					case 1:
 						player.velMax = 5;
 						break;
 					}
@@ -497,7 +570,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				player.powerUpTime.erase(i);
 			}
 			
-
 			movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score);
 			toggleEv();
 			if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
@@ -516,42 +588,48 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
 			ent++;
 
-			// variabile del reset
-
 
 			//animazioni player
-			{
-				if (player.state != res) {
-					playerAnim[res].fpF[playerAnim[res].ind] = playerAnim[res].inifpF[playerAnim[res].ind];
-					playerAnim[res].ind = 0;
-					res = player.state;
-				}
 
-				switch (player.state)
-				{
-				case state::walking:
-					playerAnim[player.state].fpF[playerAnim[player.state].ind] -= abs(player.vel / 2);
-					break;
-				case state::jumping:
-					if (playerAnim[player.state].ind == 0 && player.jmpPow <= 0)
-						playerAnim[player.state].fpF[playerAnim[player.state].ind]--;
-					break;
-				default:
-					playerAnim[player.state].fpF[playerAnim[player.state].ind]--;
-					break;
-				}
 
-				//controllo per cambiare frame
-				if (playerAnim[player.state].fpF[playerAnim[player.state].ind] <= 0) {
-					playerAnim[player.state].fpF[playerAnim[player.state].ind] = playerAnim[player.state].inifpF[playerAnim[player.state].ind];
-					if (playerAnim[player.state].ind != playerAnim[player.state].size - 1) {
-						playerAnim[player.state].ind++;
-					}
-					else {
-						playerAnim[player.state].ind = 0;
+			switch (player.state) {
+			case state::walking:
+				if (animIndex != "walking") {
+					reset(playerAnim, animIndex);
+					animIndex = "walking";
+				}
+				break;
+			case state::idle:
+				if (animIndex != "idle"){
+					reset(playerAnim, animIndex);
+					animIndex = "idle";
+				}
+				break;
+			case state::jumping:
+				if (player.jmpPow > 0) {
+					if (animIndex != "ascending") {
+						reset(playerAnim, animIndex);
+						animIndex = "ascending";
 					}
 				}
+				else {
+					if (animIndex != "descending") {
+						reset(playerAnim, animIndex);
+						animIndex = "descending";
+					}
+				}
+				
+				break;
 			}
+
+			if (player.state == state::walking) {
+				reduceFrames(playerAnim, animIndex, abs(player.vel));
+			}
+			else {
+				reduceFrames(playerAnim, animIndex, 1);
+			}
+			if (getFrames(playerAnim, animIndex) <= 0)
+				goForward(playerAnim, animIndex);
 		}
 
 		// per aumentare il contatore del tempo
@@ -559,7 +637,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			tempo++;
 			ent = 0;
 		}
-		Sleep(10);// sleeppo per non usare tutta la cpu
+
+		
 	}
 	return 0;
 }

@@ -2,7 +2,10 @@
 #include "pulsante.h"
 #include "camera.h"
 #include <iostream>
+#include <string>
+#include <unordered_map>
 #include <cmath>
+#include <typeinfo>
 #include <vector>
 using namespace std;
 
@@ -33,6 +36,10 @@ struct gameStuff player = {
 };
 bool discesa;
 int movementX = 0, movementY = 0;
+
+void addActionToEnemy(entity& e, short actionType, short firstAction, short actionTime) {
+	e.actions.push_back({ actionType,firstAction, actionTime });
+}
 
 //gestione movimento del player 
 void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score)
@@ -299,7 +306,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		for (int i = 0; i < screenEn.size(); i++) {
 			elimina = false;
 			entity& e = screenEn[i];
-			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, screenEn, elimina, kill, top, ripristina);
+			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina);
 
 			if (elimina) {
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
@@ -409,102 +416,205 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 		return;
 	}
 
+	if (e.r.bottom >= 24 * BLOCK_SIZE) {
+		elimina = true;
+		return;
+	}
+
+	bool turning = false;
+
+	//cambio animazione in base allo stato e poi in base all'azione
+	switch (e.state) {
+	case state::walking:
+		if (e.vel == 0) {
+			if (existsAnim(e.animations, "idle") && e.animIndex != "idle") {
+				reset(e.animations, e.animIndex);
+				e.animIndex = "idle";
+				e.animations.index = 0;
+			}
+		}
+		else if (e.vel != 0) {
+			if (existsAnim(e.animations, "walking") && e.animIndex != "walking") {
+				reset(e.animations, e.animIndex);
+				e.animIndex = "walking";
+				e.animations.index = 0;
+			}
+		}
+		break;
+	case state::jumping:
+		if (e.jmpPow > 0) {
+			if (existsAnim(e.animations, "ascending") && e.animIndex != "ascending") {
+				reset(e.animations, e.animIndex);
+				e.animIndex = "ascending";
+			}
+		}
+		else {
+			if (existsAnim(e.animations, "descending") && e.animIndex != "descending") {
+				reset(e.animations, e.animIndex);
+				e.animIndex = "descending";
+			}
+		}
+
+		break;
+	}
+
 	// si diminuisce il numero delle azioni
 	for (tuple<short, short, short>& i : e.actions) {
-		if (get<2>(i) != 0) {
+		if (get<0>(i) >= 0) {
+			if(get<1>(i) > 0)
 			get<1>(i)--;
+			
 			if (get<1>(i) == 0) {
 				//azione per get 0
-				switch (get<0>(i)) {
-				case 0:
+				switch (get<0>(i)/100) {
+				case 0:  //girarsi
 					e.vel = -e.vel;
+					get<1>(i) = get<2>(i);
 					break;
-				case 1:
+				case 1: //cambiare la direzione verticale
 					e.jmpPow = -e.jmpPow;
+					get<1>(i) = get<2>(i);
+					break;
+				case 2: // cannones METODO ROTTISSIMO
+				{
+					
+					double vel = get<0>(i) % 100;
+
+
+					if (player.r.right < e.r.left) {
+						if (!(e.r.left < cam.posX)) {
+							uot.push_back({
+									{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
+									-vel,                  // vel
+									0.0,                   // jmpDec
+									0.0,                   // jmpPow (default value, change if needed)
+									 state::walking,        // state
+									3,
+									{},
+									{},
+									1,
+									1,
+									true,
+									"walking",
+									true
+								});
+							newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
+							addFrame(uot[uot.size() - 1].animations, 1, "walking");
+						}
+						get<1>(i) = get<2>(i);
+					}
+					else if (player.r.left > e.r.right) {
+
+						if (!(e.r.left < cam.posX)) {
+							uot.push_back({
+								{e.r.right , e.r.top + 7, e.r.right + BLOCK_SIZE, e.r.bottom - 7},  // r
+									 vel,                  // vel
+									0.0,                   // jmpDec
+									0.0,                   // jmpPow (default value, change if needed)
+									 state::walking,        // state
+									3,
+									{},
+									{},
+									1,
+									1,
+									true,
+									"walking",
+									true
+								});
+							newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
+							addFrame(uot[uot.size() - 1].animations, 1, "walking");
+						}
+						
+						
+						get<1>(i) = get<2>(i);
+					}
+					else {
+						get<1>(i)++;
+					}
+					
+				}
+				
+
+					break;
+				case 3: // salto
+					if (e.jmpPow == 0) {
+						e.jmpPow = + get<0>(i)%100;
+						e.state = state::jumping;
+						get<1>(i) = get<2>(i);
+					}
+					else {
+						get<1>(i)++;
+					}
+					break;
+				case 4: // girare quando c'è un blocco vuoto
+					turning = true;
+					get<1>(i)++;
+					break;
+				case 5://si ferma
+					e.vel = 0;
+					get<1>(i) = get<2>(i);
+					break;
+				case 6://velocità da valore
+					e.vel = -(get<0>(i) % 100) + (!e.facingLeft * (get<0>(i) % 100) *2);
+					get<1>(i) = get<2>(i);
+					break;
+				case 7: // gira quando il player si sposta
+					if (player.r.right < e.r.left && e.vel > 0) {
+						e.facingLeft = true;
+						e.vel = -e.vel;
+					}
+					else if (player.r.right > e.r.right && e.vel < 0) {
+						e.facingLeft = false;
+						e.vel = -e.vel;
+					}
+
 					break;
 				}
-
-				get<1>(i) = get<2>(i);
+					
 			}
 		}
 		
 	}
 
 	//collisioni a destra e sinistra si cambia direzione se non è un proiettile
-	switch (e.type) {
-	/*case 2:
-		if (player.r.right < e.r.left) {
-			
-			if (e.fpa == 0) {
-				uot.push_back({
-						{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
-						-12,                  // vel
-						0.0,                   // jmpDec
-						0.0,                   // jmpPow (default value, change if needed)
-						 state::walking,        // state
-						3,
-						 (vector<pair<short,short>>)NULL
-					});
-				e.fpa = e.iniFpa;
+	if (e.r.right < cam.posX + SCREEN_WIDTH) {
+		switch (e.type) {
+		case 2:
+			break;
+		case 0:
+			//si controlla se il player uccide il nemico
+			if (player.state == state::jumping && !kill && player.r.bottom - movementY >= e.r.top && player.r.bottom <= e.r.top && player.r.right > e.r.left && player.r.left < e.r.right && movementY < 0) {
+				player.jmpPow = player.initialJmp;
+				player.state = state::jumping;
+				player.highJump = true;
+				movementY = player.r.bottom - e.r.top;
+				discesa = false;//mette la discesa quindi mette il jumping
+				kill = true; // variabile che serve per non killare il nemico se subisci danni
+				elimina = true;// serve per rimuovere il nemico in modo ordinato
+				return;
 			}
-
-		}
-		else if (player.r.left > e.r.right) {
-
-			if (e.fpa == 0) {
-				uot.push_back({
-						{e.r.right , e.r.top + 7, e.r.right + BLOCK_SIZE, e.r.bottom - 7},  // r
-						 12,                  // vel
-						0.0,                   // jmpDec
-						0.0,                   // jmpPow (default value, change if needed)
-						 state::walking,        // state
-						3,
-						0,
-						0
-					});
-				e.fpa = e.iniFpa;
+		default:
+			int limit = e.eBlockWidth;
+			if (e.r.left / BLOCK_SIZE + e.eBlockWidth == e.r.right / BLOCK_SIZE && e.r.right % BLOCK_SIZE != 0) {
+				limit++;
 			}
-		}
-		else if (e.fpa == 0) {
-			e.fpa++;
-		}
-		break;*/
-	case 2:
-		break;
-	case 0:
-		/*if (e.fpa == 0) {
-			e.jmpPow = 9.2;
-			e.fpa = e.iniFpa;
-		}*/
-		//si controlla se il player uccide il nemico
-		if (player.state == state::jumping && !kill && player.r.bottom - movementY >= e.r.top && player.r.bottom <= e.r.top && player.r.right > e.r.left && player.r.left < e.r.right && movementY < 0) {
-			player.jmpPow = player.initialJmp;
-			player.state = state::jumping;
-			player.highJump = true;
-			movementY = player.r.bottom - e.r.top;
-			discesa = false;//mette la discesa quindi mette il jumping
-			kill = true; // variabile che serve per non killare il nemico se subisci danni
-			elimina = true;// serve per rimuovere il nemico in modo ordinato
-			return;
-		}
-	default:
-		int limit = e.eBlockWidth;
-		if (e.r.left / BLOCK_SIZE + e.eBlockWidth == e.r.right / BLOCK_SIZE && e.r.right % BLOCK_SIZE != 0) {
-			limit++;
-		}
-		if (e.state != state::jumping && e.type != 3) {
-			
-			int count = 0;
-			for (int i = 0; i < limit; i++) {
-				if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][e.r.bottom / BLOCK_SIZE]) != true) {
-					count++;
+			if (e.state != state::jumping && e.type != 3) {
+
+				int count = 0;
+				for (int i = 0; i < limit; i++) {
+					if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][e.r.bottom / BLOCK_SIZE]) != true) {
+						count++;
+					}
+				}
+				if (count == limit) {
+					e.state = state::jumping;
+
+				}
+				else if (count > 0 && turning) {
+					e.vel = -e.vel;
 				}
 			}
-			if (count == limit) {
-				e.state = state::jumping;
-			}
-		}
-		else if(e.type != 1){
+			else if (e.type != 1) {
 				for (int i = 0; i < limit; i++) {
 					if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE]) == true && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
 						e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
@@ -513,32 +623,33 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 
 					}
 				}
-		}
-		//controllo collisioni si elimina la palla di cannone se tocca un muro
-		limit = e.eBlockHeight;
-		if (e.r.top / BLOCK_SIZE + e.eBlockHeight == e.r.bottom / BLOCK_SIZE && (int)(e.r.bottom - e.jmpPow) % BLOCK_SIZE != 0) {
-			limit++;
-		}
-		if (e.r.right + e.vel > cam.posX && e.r.left + e.vel < cam.posX + SCREEN_WIDTH) {
-			
-			for (int i = 0; i < limit; i++) {
-				if (e.vel < 0 && sideColl(livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][(int)(e.r.top - e.jmpPow) / BLOCK_SIZE + i]) == true) {
-					e.vel = -e.vel;
-					if (e.type == 3) {
-						elimina = true;
+			}
+			//controllo collisioni si elimina la palla di cannone se tocca un muro
+			limit = e.eBlockHeight;
+			if (e.r.top / BLOCK_SIZE + e.eBlockHeight == e.r.bottom / BLOCK_SIZE && (int)(e.r.bottom - e.jmpPow) % BLOCK_SIZE != 0) {
+				limit++;
+			}
+			if (e.r.right + e.vel > cam.posX && e.r.left + e.vel < cam.posX + SCREEN_WIDTH && e.r.right + movementX < cam.posX + SCREEN_WIDTH - BLOCK_SIZE) {
+
+				for (int i = 0; i < limit; i++) {
+					if (e.vel < 0 && sideColl(livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][(int)(e.r.top - e.jmpPow) / BLOCK_SIZE + i]) == true) {
+						e.vel = -e.vel;
+						if (e.type == 3) {
+							elimina = true;
+						}
+						break;
 					}
-					break;
-				}
-				if (e.vel > 0 && sideColl(livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][(int)(e.r.top - e.jmpPow) / BLOCK_SIZE + i]) == true) {
-					e.vel = -e.vel;
-					if (e.type == 3) {
-						elimina = true;
+					if (e.vel > 0 && sideColl(livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][(int)(e.r.top - e.jmpPow) / BLOCK_SIZE + i]) == true) {
+						e.vel = -e.vel;
+						if (e.type == 3) {
+							elimina = true;
+						}
+						break;
 					}
-					break;
 				}
 			}
+			break;
 		}
-		break;
 	}
 
 	if (kill)
@@ -567,16 +678,26 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 				}
 			}
 			break;
-		case 4:
-			if (player.life < 3)
-				player.life++;
-			elimina = true;
-			break;
-		case 5:
-			player.velMax = 10;
-			//if (player.powerUpTime[e.type] < e.fpa) player.powerUpTime[e.type] = e.fpa;
-			//rimuovere l'entità dal gruppo di entità
-			elimina = true;
+		case 4: // powerup Spiaccicato in 1 type solo, si usa il get<2> per l'effetto
+
+			switch (get<2>(e.actions[0])) {
+			case 0:
+				if (player.life < 3)
+					player.life++;
+				elimina = true;
+				break;
+			case 1:
+				player.velMax = 10;
+				if (player.powerUpTime[get<2>(e.actions[0])] < get<1>(e.actions[0]))
+					player.powerUpTime[get<2>(e.actions[0])] = get<1>(e.actions[0]);
+				//rimuovere l'entità dal gruppo di entità
+				elimina = true;
+				break;
+			}
+
+			
+
+			
 			break;
 		default:
 			if (player.immunity == player.initialImmunity && (player.r.bottom - movementY > e.r.top && player.r.top - movementY < e.r.bottom)) {
@@ -597,6 +718,13 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 
 	}
 
+	if (e.vel > 0 && e.facingLeft) {
+		e.facingLeft = false;
+	}
+	else if (e.vel < 0 && !e.facingLeft) {
+		e.facingLeft = true;
+	}
+
 	//movimento nemico
 	e.r.right += e.vel;
 	e.r.left += e.vel;
@@ -606,9 +734,23 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 		e.r.top -= e.jmpPow;
 		e.jmpPow -= e.jmpDec;
 	}
+
 	//fermata salto nemico
 	if (stop) {
 		e.state = state::walking;
-		e.jmpPow = 0;
+		e.jmpPow = 0; 
+	}
+
+	//animazione
+	if (existsAnim(e.animations, e.animIndex)) {
+		if (e.state == state::walking) {
+			reduceFrames(e.animations, e.animIndex, abs(e.vel));
+		}
+		else {
+			reduceFrames(e.animations, e.animIndex, 1);
+
+		}
+		if (getFrames(e.animations, e.animIndex) <= 0)
+			goForward(e.animations, e.animIndex);
 	}
 }
