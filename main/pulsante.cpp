@@ -40,4 +40,7 @@ void button::release() {
 	 if (D.held) {
 		 D.toggle();
 	 }
+	 if (J.held) {
+		 J.toggle();
+	 }
  }

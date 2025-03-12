@@ -11,8 +11,7 @@ using namespace std;
 
 //variabili del player
 struct gameStuff player = {
-	player.r = { 24,300,48,332 },
-	player.initialPos = player.r,
+	player.r = { 0,448,24,480 },
 	player.vel = 0,
 	player.acc = 0.14,
 	player.initialAcc = 1,
@@ -378,8 +377,8 @@ short topColl(int m) {
 	}
 }
 
-void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize) {
-	player.r = player.initialPos;
+void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize, RECT pos) {
+	player.r = pos;
 	player.vel = 0;
 	player.jmpPow = 0;
 	player.state = state::idle;
@@ -393,10 +392,12 @@ void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& ini
 	}
 	player.life = player.maxLife;
 	player.immunity = player.initialImmunity;
+	//serve per eliminare e reverting gli effetti dei powerUP
 	for (auto& i : player.powerUpTime) {
+		// si diminuice il tempo del power up, se è -1 è infinito
 			// si guarda di che tipo è il power up e si reversa la sua azione
 			switch (i.first) {
-			case 5:
+			case 1:
 				player.velMax = 5;
 				break;
 			}

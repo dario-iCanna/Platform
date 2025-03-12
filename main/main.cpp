@@ -23,6 +23,10 @@ int SCREEN_WIDTH_BLOCK = SCREEN_WIDTH / BLOCK_SIZE, SCREEN_HEIGHT_BLOCK = SCREEN
 int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
 int prova = 0;
 bool ripristina = false;
+
+//variabile per dire se il gioco è over oppure no (MENU')
+bool gameOver = true;
+
 short BLOCK_CODE = 100; // la grandezza in decimali del codice usato per i blocchi, ora 100 per poter usare 100 stili diversi per blocco
 // animazione idle del player
 
@@ -51,10 +55,15 @@ ID2D1Bitmap* fontBitmap = NULL;
 ID2D1Bitmap* cuoriBitmap = NULL;
 ID2D1Bitmap* skyBitmap = NULL;
 ID2D1Bitmap* enemyBitmap = NULL;
+ID2D1Bitmap* buttonsBitmap = NULL;
 
 
 int ***livello, ***initialLiv, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
+RECT* playerStartPos;
 int heightSize, *livSize;//altezza livello e lunghezza livello
+
+//posizione nel menù
+int pos;
 
 
 animazione playerAnim; // animazione player
@@ -116,36 +125,97 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 		pRT->BeginDraw();//inizia il disegno
 
-		//disegna sfondo PROVVISORIO
-		pRT->DrawBitmap(skyBitmap,RectF(
-			clientRect.left,
-			clientRect.top,
-			clientRect.right,
-			clientRect.bottom),1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
+		if (gameOver) {
+			/*ID2D1SolidColorBrush* white;
+			pRT->CreateSolidColorBrush(ColorF(ColorF::White), &white);
+			pRT->FillRectangle(RectF(clientRect.left, clientRect.top,clientRect.right, clientRect.bottom), white);*/
+			pRT->DrawBitmap(skyBitmap, RectF(
+				clientRect.left,
+				clientRect.top,
+				clientRect.right,
+				clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
 
-		// disegno livello FINITO
-		for (int i = floor(cam.posX/BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
-			for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
-				int val = livello[numeroLivello][i][j];//prende il valore totale
-				int cod = (int)floor(val / BLOCK_CODE);//prende il gruppo del blocco
-				int off = val % BLOCK_CODE; // da un offset * 16
+			string title = "AN ASS GAME";
+			for (int i = 0; i < title.size(); i++) {
+				pRT->DrawBitmap(fontBitmap, RectF(
+					128 * (i),
+					128,
+					128 * (i + 1),
+					256), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[i] - 48), 0, 16 * (title[i] - 48 + 1), 16));
+			}
 
-				pRT->DrawBitmap(terrainBitmap,
-					RectF(
-						i * BLOCK_SIZE - cam.posX,
-						j * BLOCK_SIZE,
-						(i + 1) * BLOCK_SIZE - cam.posX,
-						(j + 1) * BLOCK_SIZE
-					),
-					1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16*(cod), 16 * (off + 1), 16*(cod+1)) // disegna a seconda dei valori dati il blocco giusto
-				);
+			int x = 620;
+			int y = 400;
+
+			for (int i = 0; i < 1; i++) {
+				if (pos != i) {
+					for (int j = 0; j <= 5; j++) {
+						if (j == 0) {
+							pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16, 16, 32));
+						}
+						else if (j == 5) {
+							pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16, 48, 32));
+						}
+						else {
+							pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16, 32, 32));
+						}
+					}
+					string title = "GIOCA";
+					for (int j = 0; j < title.size(); j++) {
+						pRT->DrawBitmap(fontBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[j] - 48), 0, 16 * (title[j] - 48 + 1), 16));
+					}
+				}
+				else {
+					for (int j = 0; j <= 5; j++) {
+						if (j == 0) {
+							pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
+						}
+						else if (j == 5) {
+							pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
+						}
+						else {
+							pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
+						}
+					}
+
+					string title = "GIOCA";
+					for (int j = 0; j < title.size(); j++) {
+						pRT->DrawBitmap(fontBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[j] - 48), 0, 16 * (title[j] - 48 + 1), 16));
+					}
+				}
 			}
 		}
-		prova = 0;
+		else {
+			//disegna sfondo PROVVISORIO
+			pRT->DrawBitmap(skyBitmap, RectF(
+				clientRect.left,
+				clientRect.top,
+				clientRect.right,
+				clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
 
-		//disegno enttity
-		for (entity e : screenEn) {
-			//hotbox
+			// disegno livello FINITO
+			for (int i = floor(cam.posX / BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
+				for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
+					int val = livello[numeroLivello][i][j];//prende il valore totale
+					int cod = (int)floor(val / BLOCK_CODE);//prende il gruppo del blocco
+					int off = val % BLOCK_CODE; // da un offset * 16
+
+					pRT->DrawBitmap(terrainBitmap,
+						RectF(
+							i * BLOCK_SIZE - cam.posX,
+							j * BLOCK_SIZE,
+							(i + 1) * BLOCK_SIZE - cam.posX,
+							(j + 1) * BLOCK_SIZE
+						),
+						1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
+					);
+				}
+			}
+			prova = 0;
+
+			//disegno enttity
+			for (entity e : screenEn) {
+				//hotbox
 				pRT->DrawRectangle(
 					RectF(
 						e.r.left - cam.posX,
@@ -162,79 +232,82 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
 					}
 				else {
-				if (existsAnim(e.animations,e.animIndex)) {
-					int height = e.r.bottom - e.r.top;
-					int width = e.r.right - e.r.left;
-					pRT->DrawBitmap(enemyBitmap, RectF(
-						e.r.left - cam.posX - (BLOCK_SIZE - width) / 2,
-						e.r.top - (BLOCK_SIZE - height) / 2,
-						e.r.right - cam.posX + (BLOCK_SIZE - width) / 2,
-						e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
+					if (existsAnim(e.animations, e.animIndex)) {
+						int height = e.r.bottom - e.r.top;
+						int width = e.r.right - e.r.left;
+						pRT->DrawBitmap(enemyBitmap, RectF(
+							e.r.left - cam.posX - (BLOCK_SIZE - width) / 2,
+							e.r.top - (BLOCK_SIZE - height) / 2,
+							e.r.right - cam.posX + (BLOCK_SIZE - width) / 2,
+							e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
 
+					}
 				}
-				}
-
-				
-		}
-
-		//disegno tempo (fatto il to string/ da stampare)
-		string timeS = "TIME:" + to_string(tempo);
-
-		for (int i = 0; i < timeS.size(); i++) {
-			pRT->DrawBitmap(fontBitmap, RectF(
-				16 * (i),
-				16,
-				16 * (i + 1),
-				32), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (timeS[i] - 48), 0, 16 * (timeS[i] - 48 + 1), 16));
-		}
-		
-		//disegno punteggio
-		string scoreS = "SCORE:"+to_string(score);
-
-		for (int i = 0; i < scoreS.size(); i++) {
-			pRT->DrawBitmap(fontBitmap, RectF(
-				16 * (i),
-				0,
-				16 * (i + 1),
-				16), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (scoreS[i] - 48), 0, 16 * (scoreS[i] - 48 + 1), 16));
-		}
 
 
-		//disgno cuori
-		for (int i = 1; i <= player.maxLife; i++) {
-			if (player.life >= i) {
-				pRT->DrawBitmap(cuoriBitmap, RectF(
-					30*(i-1),
-					40,
-					30*i,
-					70), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(30, 0, 60, 30));
 			}
-			else {
-				pRT->DrawBitmap(cuoriBitmap, RectF(
-					30 * (i - 1),
-					40,
-					30*i,
-					70), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 30, 30));
+
+			//disegno tempo (fatto il to string/ da stampare)
+			string timeS = "TIME:" + to_string(tempo);
+
+			for (int i = 0; i < timeS.size(); i++) {
+				pRT->DrawBitmap(fontBitmap, RectF(
+					16 * (i),
+					16,
+					16 * (i + 1),
+					32), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (timeS[i] - 48), 0, 16 * (timeS[i] - 48 + 1), 16));
+			}
+
+			//disegno punteggio
+			string scoreS = "SCORE:" + to_string(score);
+
+			for (int i = 0; i < scoreS.size(); i++) {
+				pRT->DrawBitmap(fontBitmap, RectF(
+					16 * (i),
+					0,
+					16 * (i + 1),
+					16), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (scoreS[i] - 48), 0, 16 * (scoreS[i] - 48 + 1), 16));
+			}
+
+			//disgno cuori
+			for (int i = 1; i <= player.maxLife; i++) {
+				if (player.life >= i) {
+					pRT->DrawBitmap(cuoriBitmap, RectF(
+						32 * (i - 1),
+						40,
+						32 * i,
+						72), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
+				}
+				else {
+					pRT->DrawBitmap(cuoriBitmap, RectF(
+						32 * (i - 1),
+						40,
+						32 * i,
+						72), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
+				}
+
+			}
+
+			//disegno player + hitbox
+			{
+				if (playerBitmap && player.immunity % 2 == 0)
+					pRT->DrawBitmap(playerBitmap, RectF(
+						player.r.left - cam.posX - 4,
+						player.r.top,
+						player.r.right - cam.posX + 4,
+						player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex), getAnimX(playerAnim, animIndex) + getAnimWidth(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex) + getAnimHeight(playerAnim, animIndex)));
+
+				pRT->DrawRectangle(
+					RectF(
+						player.r.left - cam.posX,
+						player.r.top,
+						player.r.right - cam.posX,
+						player.r.bottom),
+					terrainBrushes[3]);
 			}
 			
 		}
-
-
-		//disegno player + hitbox
-		if(playerBitmap && player.immunity % 2 == 0)
-		pRT->DrawBitmap(playerBitmap, RectF(
-			player.r.left - cam.posX - 4,
-			player.r.top,
-			player.r.right-cam.posX + 4,
-			player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR,RectF(getAnimX(playerAnim,animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex)  *getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex), getAnimX(playerAnim, animIndex) + getAnimWidth(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim,animIndex)), getAnimY(playerAnim, animIndex) + getAnimHeight(playerAnim, animIndex)));
 		
-		pRT->DrawRectangle(
-			RectF(
-				player.r.left - cam.posX,
-				player.r.top,
-				player.r.right - cam.posX,
-				player.r.bottom),
-			terrainBrushes[3]);
 		
 
 		pRT->EndDraw();
@@ -357,6 +430,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	file >> quantitaLivelli; // si fa cin con il file del numero dei livelli
 	//creo array della lunghezza dei livelli
 	livSize = new int[quantitaLivelli];
+	playerStartPos = new RECT[quantitaLivelli];
 	for (int i = 0; i < quantitaLivelli; i++) {
 		file >> livSize[i];
 	}
@@ -490,6 +564,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		//ofile << endl;
 	}
 
+	//posizioni del player per ogni livello
+	playerStartPos[0] = { 0,448,24,480 };
+	playerStartPos[1] = { 35,672,59,704 };
+
+
+
 	//calcolo tempo per un frame
 	double fps = 1000000 / wS.MAX_FPS;
 
@@ -520,6 +600,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	createBitmap(L"sprites/font.png", &fontBitmap);
 	createBitmap(L"sprites/cuori.png", &cuoriBitmap);
 	createBitmap(L"sprites/enemy.png", &enemyBitmap);
+	createBitmap(L"sprites/buttons.png", &buttonsBitmap);
 
 	//rilascia risorse inutili
 	wicFactory->Release();
@@ -537,99 +618,124 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+
 		QueryPerformanceCounter(&end); // prendo il tempo finale e calcolo il delta time
 		deltaTime =  end.QuadPart - start.QuadPart;
 		//controllo se il tempo è maggiore del frame per secondo
 		if (deltaTime >= fps) {
-			if (player.immunity < player.initialImmunity && player.immunity != 0) 
-				player.immunity--;
-			else if (player.immunity == 0)
-				player.immunity = player.initialImmunity;
+			if (gameOver) {
+				if (S.pressed && pos < 0) {
+					pos++;
+				}
+				if (W.pressed && pos > 0) {
+					pos--;
+				}
+				if (J.pressed && numeroLivello != quantitaLivelli) {
+					gameOver = false;
+					toggleEv();
+				}
+			}
+			else {
+				if (numeroLivello == quantitaLivelli) {
+					gameOver = true;
+				}
+				else {
+					if (J.pressed) {
+						gameOver = true;
+						ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
+					}
+					if (player.immunity < player.initialImmunity && player.immunity != 0)
+						player.immunity--;
+					else if (player.immunity == 0)
+						player.immunity = player.initialImmunity;
 
-			//serve per eliminare gli effetti dei powerUP
-			vector<int> erase;
+					//serve per eliminare gli effetti dei powerUP
+					vector<int> erase;
 
-			//scorro i powerup Attivi
-			for (auto& i : player.powerUpTime) {
-				// si diminuice il tempo del power up, se è -1 è infinito
-				if (i.second > 0)
-					i.second--;
-				else if (i.second == 0) {
-					// si guarda di che tipo è il power up e si reversa la sua azione
-					switch (i.first) {
-					case 1:
-						player.velMax = 5;
+					//scorro i powerup Attivi
+					for (auto& i : player.powerUpTime) {
+						// si diminuice il tempo del power up, se è -1 è infinito
+						if (i.second > 0)
+							i.second--;
+						else if (i.second == 0) {
+							// si guarda di che tipo è il power up e si reversa la sua azione
+							switch (i.first) {
+							case 1:
+								player.velMax = 5;
+								break;
+							}
+							erase.push_back(i.first);
+						}
+					}
+
+					//elimino l'effetto dei powerup Finiti
+					for (int i : erase) {
+						player.powerUpTime.erase(i);
+					}
+
+					movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score);
+					toggleEv();
+					if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
+						numeroLivello++;
+						ripristina = true;
+					}
+
+					if (ripristina) {
+						ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
+						score = 0;
+						tempo = 0;
+						ripristina = false;
+					}
+
+
+					//animazioni player
+					switch (player.state) {
+					case state::walking:
+						if (animIndex != "walking") {
+							reset(playerAnim, animIndex);
+							animIndex = "walking";
+						}
+						break;
+					case state::idle:
+						if (animIndex != "idle") {
+							reset(playerAnim, animIndex);
+							animIndex = "idle";
+						}
+						break;
+					case state::jumping:
+						if (player.jmpPow > 0) {
+							if (animIndex != "ascending") {
+								reset(playerAnim, animIndex);
+								animIndex = "ascending";
+							}
+						}
+						else {
+							if (animIndex != "descending") {
+								reset(playerAnim, animIndex);
+								animIndex = "descending";
+							}
+						}
+
 						break;
 					}
-					erase.push_back(i.first);
-				}	
+
+					if (player.state == state::walking) {
+						reduceFrames(playerAnim, animIndex, abs(player.vel));
+					}
+					else {
+						reduceFrames(playerAnim, animIndex, 1);
+					}
+					if (getFrames(playerAnim, animIndex) <= 0)
+						goForward(playerAnim, animIndex);
+				}
 			}
 
-			//elimino l'effetto dei powerup Finiti
-			for (int i : erase) {
-				player.powerUpTime.erase(i);
-			}
-			
-			movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score);
-			toggleEv();
-			if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
-				numeroLivello++;
-				ripristina = true;
-			}
-			if (ripristina) {
-				ripristino(screenEn,limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello]);
-				score = 0;
-				tempo = 0;
-				ripristina = false;
-			}
+			//si ridisegna tutto
 			//RedrawWindow(hW, NULL, NULL, RDW_INTERNALPAINT | RDW_UPDATENOW | RDW_INVALIDATE);
 			InvalidateRect(hW, NULL, TRUE);
 			UpdateWindow(hW);
 			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
 			ent++;
-
-
-			//animazioni player
-
-
-			switch (player.state) {
-			case state::walking:
-				if (animIndex != "walking") {
-					reset(playerAnim, animIndex);
-					animIndex = "walking";
-				}
-				break;
-			case state::idle:
-				if (animIndex != "idle"){
-					reset(playerAnim, animIndex);
-					animIndex = "idle";
-				}
-				break;
-			case state::jumping:
-				if (player.jmpPow > 0) {
-					if (animIndex != "ascending") {
-						reset(playerAnim, animIndex);
-						animIndex = "ascending";
-					}
-				}
-				else {
-					if (animIndex != "descending") {
-						reset(playerAnim, animIndex);
-						animIndex = "descending";
-					}
-				}
-				
-				break;
-			}
-
-			if (player.state == state::walking) {
-				reduceFrames(playerAnim, animIndex, abs(player.vel));
-			}
-			else {
-				reduceFrames(playerAnim, animIndex, 1);
-			}
-			if (getFrames(playerAnim, animIndex) <= 0)
-				goForward(playerAnim, animIndex);
 		}
 
 		// per aumentare il contatore del tempo
@@ -637,8 +743,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			tempo++;
 			ent = 0;
 		}
-
-		
 	}
 	return 0;
 }

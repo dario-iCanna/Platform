@@ -64,6 +64,9 @@
     <Image Include="sprites\player.png">
       <Filter>File di origine</Filter>
     </Image>
+    <Image Include="sprites\buttons.png">
+      <Filter>File di origine</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Livelli.txt">

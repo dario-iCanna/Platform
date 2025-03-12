@@ -12,7 +12,6 @@ using namespace std;
 //variabili del player
 extern struct gameStuff {
 	RECT r ;
-	RECT initialPos;
 	double vel;
 	double acc;
 	double initialAcc;
@@ -77,7 +76,7 @@ short bottomColl(int m);
 short topColl(int m);
 
 // posizione
-void ripristino(vector<entity>& screenEn, int& size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize);
+void ripristino(vector<entity>& screenEn, int& size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize, RECT pos);
 
 //movimento nemici e piattaforme
 void movimentoEntità(int** livello, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina);

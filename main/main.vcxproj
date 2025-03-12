@@ -144,6 +144,7 @@
     <ClInclude Include="player.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="sprites\buttons.png" />
     <Image Include="sprites\cuori.png" />
     <Image Include="sprites\enemy.png" />
     <Image Include="sprites\player.png" />
