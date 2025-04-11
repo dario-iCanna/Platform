@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include "animazione.h"
+#include "audio.h"
 
 using namespace std;
 
@@ -64,7 +65,7 @@ enum state{
 };
 
 //metodo movimento del player
-void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score);
+void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score, audioBuffer ab);
 
 //collsione laterare 
 short sideColl(int m);
@@ -77,6 +78,9 @@ short topColl(int m);
 
 // posizione
 void ripristino(vector<entity>& screenEn, int& size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize, RECT pos);
+
+//ripristino player
+void ripristinoPlayer(RECT pos);
 
 //movimento nemici e piattaforme
 void movimentoEntità(int** livello, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina);

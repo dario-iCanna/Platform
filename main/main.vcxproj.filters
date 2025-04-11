@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="File di origine\images">
+      <UniqueIdentifier>{09d7e051-b609-4d8d-b972-afe205d1a196}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="File di origine\sounds">
+      <UniqueIdentifier>{60bd39c4-f541-4d2b-8116-9b9fcb0e293c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -33,6 +39,9 @@
     <ClCompile Include="animazione.cpp">
       <Filter>File di intestazione</Filter>
     </ClCompile>
+    <ClCompile Include="audio.cpp">
+      <Filter>File di intestazione</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="player.h">
@@ -44,36 +53,39 @@
     <ClInclude Include="animazione.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
+    <ClInclude Include="audio.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="sprites\terreno.png">
-      <Filter>File di origine</Filter>
-    </Image>
-    <Image Include="sprites\sky.png">
-      <Filter>File di origine</Filter>
-    </Image>
-    <Image Include="sprites\numeri.png">
-      <Filter>File di origine</Filter>
-    </Image>
-    <Image Include="sprites\cuori.png">
-      <Filter>File di origine</Filter>
-    </Image>
-    <Image Include="sprites\enemy.png">
-      <Filter>File di origine</Filter>
-    </Image>
-    <Image Include="sprites\player.png">
-      <Filter>File di origine</Filter>
+      <Filter>File di origine\images</Filter>
     </Image>
     <Image Include="sprites\buttons.png">
-      <Filter>File di origine</Filter>
+      <Filter>File di origine\images</Filter>
+    </Image>
+    <Image Include="sprites\cuori.png">
+      <Filter>File di origine\images</Filter>
+    </Image>
+    <Image Include="sprites\enemy.png">
+      <Filter>File di origine\images</Filter>
+    </Image>
+    <Image Include="sprites\numeri.png">
+      <Filter>File di origine\images</Filter>
+    </Image>
+    <Image Include="sprites\player.png">
+      <Filter>File di origine\images</Filter>
+    </Image>
+    <Image Include="sprites\sky.png">
+      <Filter>File di origine\images</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Livelli.txt">
-      <Filter>File di origine</Filter>
+      <Filter>File di origine\images</Filter>
     </Text>
     <Text Include="output.txt">
-      <Filter>File di origine</Filter>
+      <Filter>File di origine\images</Filter>
     </Text>
   </ItemGroup>
 </Project>

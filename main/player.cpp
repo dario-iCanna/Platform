@@ -1,6 +1,7 @@
 #include "player.h"
 #include "pulsante.h"
 #include "camera.h"
+#include "audio.h"
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -41,7 +42,7 @@ void addActionToEnemy(entity& e, short actionType, short firstAction, short acti
 }
 
 //gestione movimento del player 
-void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score)
+void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score, audioBuffer ab)
 {
 	discesa = true;
 
@@ -82,6 +83,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		break;
 	
 	case state::walking:
+		//PlayAudio(L"./sfx/step.wav", ab, 0, 0.01); // si fa l'audio ogni volta che faccio un passo
 		if (A.pressed) {
 			player.vel -= player.initialAcc;
 			player.facingLeft = true;
@@ -217,6 +219,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 					//distruzione con aggiunta di score
 				case 2:
 					livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01); // si fa l'audio ogni volta che prendo una money
 					score++;
 					break;
 				}
@@ -238,6 +241,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 					//distruzione con aggiunta di score
 				case 2:
 					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01);
+
 					score++;
 					break;
 				}
@@ -275,6 +280,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				//distruzione con aggiunta di score
 			case 2:
 				livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
+				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01);
 				score++;
 			}
 
@@ -288,6 +294,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				//distruzione con aggiunta di score
 			case 2:
 				livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
+				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01);
+
 				score++;
 				break;
 			}
@@ -378,10 +386,8 @@ short topColl(int m) {
 }
 
 void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize, RECT pos) {
-	player.r = pos;
-	player.vel = 0;
-	player.jmpPow = 0;
-	player.state = state::idle;
+	ripristinoPlayer(pos);
+
 	size = 0;
 	cam.posX = 0;
 	screenEn.resize(0);
@@ -390,21 +396,30 @@ void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& ini
 			livello[i][j] = initialLiv[i][j];
 		}
 	}
+	
+	//entità.r = entità.initialPos;
+}
+
+//ripristino player 
+void ripristinoPlayer(RECT pos) {
+	player.r = pos;
+	player.vel = 0;
+	player.jmpPow = 0;
+	player.state = state::idle;
 	player.life = player.maxLife;
 	player.immunity = player.initialImmunity;
 	//serve per eliminare e reverting gli effetti dei powerUP
 	for (auto& i : player.powerUpTime) {
 		// si diminuice il tempo del power up, se è -1 è infinito
 			// si guarda di che tipo è il power up e si reversa la sua azione
-			switch (i.first) {
-			case 1:
-				player.velMax = 5;
-				break;
-			}
-		
+		switch (i.first) {
+		case 1:
+			player.velMax = 5;
+			break;
+		}
+
 	}
 	player.powerUpTime.empty();
-	//entità.r = entità.initialPos;
 }
 
 //movimento entità da rifare

@@ -134,6 +134,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="animazione.cpp" />
+    <ClCompile Include="audio.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="pulsante.cpp" />
     <ClCompile Include="pulsante.h" />
@@ -141,6 +142,7 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="animazione.h" />
+    <ClInclude Include="audio.h" />
     <ClInclude Include="player.h" />
   </ItemGroup>
   <ItemGroup>
