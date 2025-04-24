@@ -26,6 +26,8 @@ int prova = 0;
 bool ripristina = false;
 bool changeLiv = false; // per aumentare il livello con il ripristina
 
+audio music;//musica per il livello
+
 //variabile per dire se il gioco è over oppure no (MENU')
 bool gameOver = true;
 
@@ -610,7 +612,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	//posizioni del player per ogni livello
 	playerStartPos[0] = { 0,448,24,480 };
 	playerStartPos[1] = { 35,672,59,704 };
-	playerStartPos[2] = { 0,448,24,480 };
+	//playerStartPos[2] = { 0,448,24,480 };
 
 
 
@@ -680,6 +682,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 						tempo = 0;
 						toggleEv();
 						waitTime = 60;
+						music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 					}
 				}
 				else {
@@ -751,6 +754,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								score = 0;
 								tempo = 0;
 								ripristina = false;
+								StopAudio(music);
+								music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
+
 							}
 							notRunning = 0;
 							waitTime = 60;

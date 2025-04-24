@@ -102,7 +102,7 @@ IXAudio2SourceVoice* LeggiSuono(const TCHAR* filename, XAUDIO2_BUFFER& buffer) {
 	return m_pXAudio2SourceVoice;
 }
 
-void PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume) {
+audio PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume) {
 	//si mettono le diverse info nel buffer
 	audio suono = LeggiSuono(filename, buffer);
 	suono->FlushSourceBuffers();
@@ -111,6 +111,7 @@ void PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, flo
 	sound->SetVolume(volume);
 	sound->SubmitSourceBuffer(&buffer);
 	sound->Start(0);
+	return sound;
 }
 
 void StopAudio(audio suono) {

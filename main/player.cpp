@@ -83,7 +83,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		break;
 	
 	case state::walking:
-		//PlayAudio(L"./sfx/step.wav", ab, 0, 0.01); // si fa l'audio ogni volta che faccio un passo
+
+
 		if (A.pressed) {
 			player.vel -= player.initialAcc;
 			player.facingLeft = true;
@@ -208,6 +209,9 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 					if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
 						movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
 
+						if(player.state == state::jumping)
+							PlayAudio(L"./sfx/step.wav", ab, 0, 0.05); // ogni volta che si atterra si fa l'audio
+						
 						if (player.vel == 0 && !A.held && !D.held)
 							player.state = state::idle;
 						else
@@ -219,7 +223,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 					//distruzione con aggiunta di score
 				case 2:
 					livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01); // si fa l'audio ogni volta che prendo una money
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008); // si fa l'audio ogni volta che prendo una money
 					score++;
 					break;
 				}
@@ -241,7 +245,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 					//distruzione con aggiunta di score
 				case 2:
 					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01);
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 
 					score++;
 					break;
@@ -280,7 +284,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				//distruzione con aggiunta di score
 			case 2:
 				livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
-				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01);
+				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 				score++;
 			}
 
@@ -294,7 +298,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				//distruzione con aggiunta di score
 			case 2:
 				livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
-				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.01);
+				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 
 				score++;
 				break;
@@ -313,7 +317,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		for (int i = 0; i < screenEn.size(); i++) {
 			elimina = false;
 			entity& e = screenEn[i];
-			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina);
+			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, ab);
 
 			if (elimina) {
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
@@ -423,7 +427,7 @@ void ripristinoPlayer(RECT pos) {
 }
 
 //movimento entità da rifare
-void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina) {
+void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, audioBuffer ab) {
 	bool stop = false;
 
 	//si controlla se il nemico è fuori dallo schermo
@@ -498,6 +502,9 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 
 
 					if (player.r.right < e.r.left) {
+						PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+
+
 						if (!(e.r.left < cam.posX)) {
 							uot.push_back({
 									{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
@@ -520,6 +527,7 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 						get<1>(i) = get<2>(i);
 					}
 					else if (player.r.left > e.r.right) {
+						PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 						if (!(e.r.left < cam.posX)) {
 							uot.push_back({

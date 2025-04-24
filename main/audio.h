@@ -22,6 +22,6 @@ HRESULT ReadChunkData(HANDLE hFile, void* buffer, DWORD buffersize, DWORD buffer
 
 IXAudio2SourceVoice* LeggiSuono(const TCHAR* filename, XAUDIO2_BUFFER& buffer);
 
-void PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume);
+audio PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume);
 
 void StopAudio(audio suono);
