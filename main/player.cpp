@@ -232,6 +232,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				switch (topColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE])) {
 					//distruzione
 				case 3:
+					PlayAudio(L"./sfx/bricks.wav", ab, 0, 0.5);
 					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
 				case true:
 					if(movementY > 0)
@@ -317,7 +318,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		for (int i = 0; i < screenEn.size(); i++) {
 			elimina = false;
 			entity& e = screenEn[i];
-			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, ab);
+			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, score, ab);
 
 			if (elimina) {
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
@@ -427,7 +428,7 @@ void ripristinoPlayer(RECT pos) {
 }
 
 //movimento entità da rifare
-void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, audioBuffer ab) {
+void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab) {
 	bool stop = false;
 
 	//si controlla se il nemico è fuori dallo schermo
@@ -615,6 +616,8 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 				discesa = false;//mette la discesa quindi mette il jumping
 				kill = true; // variabile che serve per non killare il nemico se subisci danni
 				elimina = true;// serve per rimuovere il nemico in modo ordinato
+
+				score += 10;
 				return;
 			}
 		default:
@@ -716,6 +719,7 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 					player.powerUpTime[get<2>(e.actions[0])] = get<1>(e.actions[0]);
 				//rimuovere l'entità dal gruppo di entità
 				elimina = true;
+				
 				break;
 			}
 
@@ -765,7 +769,8 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 		e.jmpPow = 0; 
 	}
 
-	//animazione
+
+	//animazione da non toccare che sono buggate a bestia
 	if (existsAnim(e.animations, e.animIndex)) {
 		if (e.state == state::walking) {
 			reduceFrames(e.animations, e.animIndex, abs(e.vel));

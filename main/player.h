@@ -44,7 +44,7 @@ extern struct entity
 	double jmpDec;
 	double jmpPow;
 	int state;//usato per collisioniNshit
-	short type;//0 per normal 1 per piattaforme mobili 2 per cannone 3 per proiettile 4 per cuore 5 power up
+	short type;//-1 per scritte 0 per normal 1 per piattaforme mobili 2 per cannone 3 per proiettile 4 per cuore 5 power up
 	vector<tuple<short, short, short>> actions;
 	animazione animations;
 	int eBlockWidth;
@@ -52,6 +52,7 @@ extern struct entity
 	bool facingLeft;
 	string animIndex;
 	bool differentSideAnimation;
+	int timeAlive;// tempo per far stare vivo un personaggio, usato solo per i nemici a -1 (le scritte mobili che non fanno un cazzo)
 };
 
 //aggiungere azione al nemoco
@@ -83,4 +84,4 @@ void ripristino(vector<entity>& screenEn, int& size, int**& livello, int**& init
 void ripristinoPlayer(RECT pos);
 
 //movimento nemici e piattaforme
-void movimentoEntità(int** livello, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, audioBuffer ab);
+void movimentoEntità(int** livello, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab);

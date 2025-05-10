@@ -144,17 +144,8 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 					clientRect.right,
 					clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
 
-				if (numeroLivello == quantitaLivelli) {
-					string title = "HAI FINITO NIG";
-					for (int i = 0; i < title.size(); i++) {
-						pRT->DrawBitmap(fontBitmap, RectF(
-							128 * (i),
-							128,
-							128 * (i + 1),
-							256), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[i] - 48), 0, 16 * (title[i] - 48 + 1), 16));
-					}
-				}
-				else {
+				//MENU'
+				{
 					string title = "AN ASS GAME";
 					for (int i = 0; i < title.size(); i++) {
 						pRT->DrawBitmap(fontBitmap, RectF(
@@ -230,7 +221,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 				//disegno enttity
 				for (entity e : screenEn) {
-					/*hitbox
+
+				
+						/*hitbox
 					pRT->DrawRectangle(
 						RectF(
 							e.r.left - cam.posX,
@@ -238,26 +231,27 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							e.r.right - cam.posX,
 							e.r.bottom),
 						terrainBrushes[0]);*/
-					if (e.eBlockWidth > 1)
-						for (int i = 0; i < e.eBlockWidth; i++) {
-							pRT->DrawBitmap(enemyBitmap, RectF(
-								e.r.left - cam.posX + 32 * i,
-								e.r.top,
-								e.r.left - cam.posX + 32 * (i + 1),
-								e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
-						}
-					else {
-						if (existsAnim(e.animations, e.animIndex)) {
-							int height = e.r.bottom - e.r.top;
-							int width = e.r.right - e.r.left;
-							pRT->DrawBitmap(enemyBitmap, RectF(
-								e.r.left - cam.posX - (BLOCK_SIZE - width) / 2,
-								e.r.top - (BLOCK_SIZE - height) / 2,
-								e.r.right - cam.posX + (BLOCK_SIZE - width) / 2,
-								e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
+						if (e.eBlockWidth > 1)
+							for (int i = 0; i < e.eBlockWidth; i++) {
+								pRT->DrawBitmap(enemyBitmap, RectF(
+									e.r.left - cam.posX + 32 * i,
+									e.r.top,
+									e.r.left - cam.posX + 32 * (i + 1),
+									e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
+							}
+						else {
+							if (existsAnim(e.animations, e.animIndex)) {
+								int height = e.r.bottom - e.r.top;
+								int width = e.r.right - e.r.left;
+								pRT->DrawBitmap(enemyBitmap, RectF(
+									e.r.left - cam.posX - (BLOCK_SIZE - width) / 2,
+									e.r.top - (BLOCK_SIZE - height) / 2,
+									e.r.right - cam.posX + (BLOCK_SIZE - width) / 2,
+									e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
 
+							}
 						}
-					}
+					
 
 
 				}
@@ -274,7 +268,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 				}
 
 				//disegno punteggio
-				string scoreS = "SCORE:" + to_string(score);
+				string scoreS = "SCORE:" + to_string(score*10);
 
 				for (int i = 0; i < scoreS.size(); i++) {
 					pRT->DrawBitmap(fontBitmap, RectF(
@@ -682,6 +676,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 						tempo = 0;
 						toggleEv();
 						waitTime = 60;
+						//ripristina il livello, serve per ripartire
+						ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
 						music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 					}
 				}
@@ -689,10 +685,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 					if (notRunning == 0 && !ripristina) {
 						if (numeroLivello == quantitaLivelli) {
 							gameOver = true;
+							numeroLivello = 0;
 						}
 						else {
+							//pausa menu riprendere
 							if (J.pressed) {
 								gameOver = true;
+								StopAudio(music);
 								ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
 							}
 							if (player.immunity < player.initialImmunity && player.immunity != 0)
@@ -755,11 +754,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								tempo = 0;
 								ripristina = false;
 								StopAudio(music);
-								music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
+								if(numeroLivello < quantitaLivelli)
+									music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 
 							}
 							notRunning = 0;
-							waitTime = 60;
+							if(numeroLivello < quantitaLivelli)
+								waitTime = 60;
 						}
 					}
 					//animazioni player che si possono fare anche quando il gioco è fermo 
