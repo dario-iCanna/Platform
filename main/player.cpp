@@ -142,6 +142,9 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 			player.jmpPow = player.initialJmp;
 			player.state = state::jumping;
 			player.highJump = true;
+			PlayAudio(L"./sfx/jump.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+
+			
 		}
 
 		break;
@@ -169,6 +172,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 			player.jmpPow = player.initialJmp;
 			player.state = state::jumping;
 			player.highJump = true;
+			PlayAudio(L"./sfx/jump.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+
 		}
 
 		break;
@@ -203,6 +208,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				case 4:
 					if (player.immunity == player.initialImmunity) {
 						player.life--;
+						PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 						player.immunity--;
 					}
 				case true:
@@ -730,6 +736,7 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 		default:
 			if (player.immunity == player.initialImmunity && (player.r.bottom - movementY > e.r.top && player.r.top - movementY < e.r.bottom)) {
 				player.life--;
+				PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si viene colpiti si fa l'audio
 				player.immunity--;
 				// si fa saltare indietro il player
 				player.state = state::jumping;
