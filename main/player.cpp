@@ -324,7 +324,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		for (int i = 0; i < screenEn.size(); i++) {
 			elimina = false;
 			entity& e = screenEn[i];
-			movimentoEntità(livello, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, score, ab);
+			movimentoEntità(livello,livSize, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, score, ab);
 
 			if (elimina) {
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
@@ -358,6 +358,145 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 	if (player.life <= 0) {
 		ripristina = true;
 		return;
+	}
+
+	if (discesa) {
+		player.state = state::jumping; // si mette lo stto di jumping
+	}
+}
+
+//funzione per le animazioni del cazzo, gli do dei valori delle diverse cose e lui me le fa
+void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int& score, audioBuffer ab) {
+	discesa = true;
+
+	if (player.state == state::jumping) {
+		player.jmpPow -= player.jmpDec;
+	}
+
+	movementX += player.vel; //+ movimento dipendente da entità
+	movementY += player.jmpPow; //+ movimento dipendente da entità
+
+	//collisioni in alto e in basso
+	{
+		//si prende per quanti blocchi bisogna fare la collisione
+		if (player.r.left / BLOCK_SIZE + player.widthBlock == player.r.right / BLOCK_SIZE && player.r.right % BLOCK_SIZE != 0) {
+			player.widthPl = true;
+		}
+		else {
+			player.widthPl = false;
+		}
+
+		for (int i = 0; i < (player.widthBlock + player.widthPl); i++) {
+			if (player.r.left / BLOCK_SIZE + i < livSize &&  movementY <= 0)
+				switch ( bottomColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE])) {
+					//danno
+				case 4:
+					if (player.immunity == player.initialImmunity) {
+						player.life--;
+						PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+						player.immunity--;
+					}
+				case true:
+					if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
+						movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
+
+						if (player.state == state::jumping)
+							PlayAudio(L"./sfx/step.wav", ab, 0, 0.05); // ogni volta che si atterra si fa l'audio
+
+						if (player.vel == 0 && !A.held && !D.held)
+							player.state = state::idle;
+						else
+							player.state = state::walking;
+						player.jmpPow = 0;
+					}
+					discesa = false;
+					break;
+					//distruzione con aggiunta di score
+				case 2:
+					livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008); // si fa l'audio ogni volta che prendo una money
+					score++;
+					break;
+				}
+
+			if (player.r.left / BLOCK_SIZE + i < livSize && movementY >= 0 && player.r.bottom != 0)
+				switch ( topColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE])) {
+					//distruzione
+				case 3:
+					PlayAudio(L"./sfx/bricks.wav", ab, 0, 0.5);
+					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
+				case true:
+					if (movementY > 0)
+						movementY = ((player.r.top - movementY) / BLOCK_SIZE + 1) * BLOCK_SIZE - player.r.top;
+
+					player.jmpPow = 0;
+
+					break;
+					//distruzione con aggiunta di score
+				case 2:
+					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+
+					score++;
+					break;
+				}
+		}
+	}
+
+	//collisioni a destra e sinistra
+	if (movementX != 0) {
+
+		//aumentare l'altezza di un blocco
+		if (player.r.top / BLOCK_SIZE + player.heightBlock == player.r.bottom / BLOCK_SIZE && (player.r.bottom - movementY) % BLOCK_SIZE != 0) {
+			player.heightPl = true;
+		}
+		else {
+			player.heightPl = false;
+		}
+		for (int i = 0; i < (player.heightBlock + player.heightPl); i++) {
+			if ((player.r.left + movementX) / BLOCK_SIZE < livSize) {
+				switch (sideColl(livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i])) {
+				case true:
+					if (player.r.left / BLOCK_SIZE > (player.r.left + movementX) / BLOCK_SIZE) {
+						movementX = (player.r.left / BLOCK_SIZE) * BLOCK_SIZE - player.r.left;
+						player.vel = 0.99;
+					}
+					break;
+					//distruzione con aggiunta di score
+				case 2:
+					livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+					score++;
+				}
+			}
+			if ((player.r.right + movementX) / BLOCK_SIZE < livSize) {
+				switch (sideColl(livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i])) {
+				case true:
+					if ((player.r.right / BLOCK_SIZE < (player.r.right + movementX) / BLOCK_SIZE || player.r.right == ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE)) {
+						movementX = ((player.r.right + movementX) / BLOCK_SIZE) * BLOCK_SIZE - player.r.right;
+						player.vel = -0.99;
+					}
+					break;
+					//distruzione con aggiunta di score
+				case 2:
+					livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
+					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+
+					score++;
+					break;
+				}
+			}
+		}
+	}
+
+	//movimento player effettivo
+	{
+		player.r.left += movementX;
+		player.r.right += movementX;
+		player.r.top -= movementY;
+		player.r.bottom -= movementY;
+		movementX = 0;
+		movementY = 0;
 	}
 
 	if (discesa) {
@@ -434,7 +573,7 @@ void ripristinoPlayer(RECT pos) {
 }
 
 //movimento entità da rifare
-void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab) {
+void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab) {
 	bool stop = false;
 
 	//si controlla se il nemico è fuori dallo schermo
@@ -635,7 +774,7 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 
 				int count = 0;
 				for (int i = 0; i < limit; i++) {
-					if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][e.r.bottom / BLOCK_SIZE]) != true) {
+					if (e.r.left / BLOCK_SIZE + i < livSize && bottomColl(livello[e.r.left / BLOCK_SIZE + i][e.r.bottom / BLOCK_SIZE]) != true) {
 						count++;
 					}
 				}
@@ -649,7 +788,7 @@ void movimentoEntità(int** livello,int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, ve
 			}
 			else if (e.type != 1) {
 				for (int i = 0; i < limit; i++) {
-					if (bottomColl(livello[e.r.left / BLOCK_SIZE + i][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE]) == true && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
+					if (e.r.left / BLOCK_SIZE + i < livSize && bottomColl(livello[e.r.left / BLOCK_SIZE + i][(int)(e.r.bottom - e.jmpPow) / BLOCK_SIZE]) == true && e.r.bottom <= ((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE) {
 						e.jmpPow = e.r.bottom - floor((e.r.bottom - e.jmpPow) / BLOCK_SIZE) * BLOCK_SIZE;
 						stop = true;
 						break;

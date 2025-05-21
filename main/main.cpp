@@ -728,7 +728,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
 								changeLiv = true;
 								player.state = state::walking;
-								player.vel = 5;
+								player.vel = 1;
 								notRunning = 120;
 								ripristina = true;
 							}
@@ -738,9 +738,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 					else {
 						notRunning--;
 
-						//animazione di molto provvisoria per l'uscita dalla fine del livello
-						player.r.left++; 
-						player.r.right++;
+						//animazione di molto provvisoria per l'uscita dalla fine del livello (metodo per il movimento del player con le collisioni del cazzo)
+						automaticMovement(livello[numeroLivello], livSize[numeroLivello], limit, BLOCK_SIZE, SCREEN_WIDTH, score, suonoBuffer);
+						
 
 						//funzione da fare quando finisce il tempo nel quale il gioco è fermo
 						if (notRunning <= 0) {

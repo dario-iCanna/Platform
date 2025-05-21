@@ -68,6 +68,9 @@ enum state{
 //metodo movimento del player
 void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score, audioBuffer ab);
 
+//funzione per le animazioni n shit
+void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int& score, audioBuffer ab);
+
 //collsione laterare 
 short sideColl(int m);
 
@@ -84,4 +87,4 @@ void ripristino(vector<entity>& screenEn, int& size, int**& livello, int**& init
 void ripristinoPlayer(RECT pos);
 
 //movimento nemici e piattaforme
-void movimentoEntità(int** livello, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab);
+void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab);
