@@ -64,6 +64,7 @@ ID2D1Bitmap* terrainBitmap = NULL;
 ID2D1Bitmap* fontBitmap = NULL;
 ID2D1Bitmap* cuoriBitmap = NULL;
 ID2D1Bitmap* skyBitmap = NULL;
+ID2D1Bitmap* redSkyBitmap = NULL;
 ID2D1Bitmap* enemyBitmap = NULL;
 ID2D1Bitmap* buttonsBitmap = NULL;
 
@@ -199,11 +200,23 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			}
 			else {
 				//disegna sfondo PROVVISORIO
-				pRT->DrawBitmap(skyBitmap, RectF(
-					clientRect.left,
-					clientRect.top,
-					clientRect.right,
-					clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
+				switch (numeroLivello) {
+				case 0:
+					pRT->DrawBitmap(skyBitmap, RectF(
+						clientRect.left,
+						clientRect.top,
+						clientRect.right,
+						clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
+					break;
+				default:
+					pRT->DrawBitmap(redSkyBitmap, RectF(
+						clientRect.left,
+						clientRect.top,
+						clientRect.right,
+						clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1570, 884));
+					break;
+				}
+				
 
 				// disegno livello FINITO
 				for (int i = floor(cam.posX / BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
@@ -637,6 +650,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	createBitmap(L"sprites/player.png", &playerBitmap);
 	createBitmap(L"sprites/terreno.png", &terrainBitmap);
 	createBitmap(L"sprites/sky.png", &skyBitmap);
+	createBitmap(L"sprites/redSky.png", &redSkyBitmap);
 	createBitmap(L"sprites/font.png", &fontBitmap);
 	createBitmap(L"sprites/cuori.png", &cuoriBitmap);
 	createBitmap(L"sprites/enemy.png", &enemyBitmap);
