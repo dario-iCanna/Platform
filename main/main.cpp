@@ -78,7 +78,7 @@ int menuPos;
 //pagina del menu
 int menuPage = 0;
 //numero pulsanti nel menu
-int menuButtons = 2;
+int menuButtons = 3;
 
 animazione playerAnim; // animazione player
 string animIndex; // indice per l'animazione del player
@@ -206,16 +206,19 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 					clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1920, 885));
 
 				//MENU'
-				{
-					string title = "PLATFORM GAME";
+				string title;
+				int x;
+				int y;
+				switch(menuPage){
+				case 0:
+					title = "PLATFORM GAME";
 
 					centerString(pRT, title, RectF(0,0,SCREEN_WIDTH,500), 96, 0);
 
-					int x = 620;
-					int y = 400;
+					x = 620;
+					y = 400;
 
-					switch (menuPage) {
-					case 0:
+
 						for (int i = 0; i < menuButtons; i++) {
 							if (menuPos != i) {
 								for (int j = 0; j <= 5; j++) {
@@ -245,23 +248,29 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							}
 
 							//si sceglie cosa scrivere in base al bottone
-							string title;
 							switch (i) {
 							case 0:
 								title = "GIOCA";
 								break;
 							case 1:
+								title = "AIUTO";
+								break;
+							case 2:
 								title = "ESCI";
 								break;
 							}
 
 							//si disegna
 							centerString(pRT, title, RectF(x, y + 32 * (i), x + 192, y + 32 * (i + 1)), 32, 0);
-						}
-						break;
-					}
+						}	
 
+					break;
+				case 1:
+					title = "COMO SE JUEGA A STA MERDA";
+
+					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 500), 32, 0);
 					
+					break;
 				}
 			}
 			else {
@@ -734,9 +743,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				if (gameOver) {
 					if (S.pressed && menuPos < menuButtons-1) {
 						menuPos++;
+						PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
+
 					}
 					if (W.pressed && menuPos > 0) {
 						menuPos--;
+						PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
 					}
 					if (J.pressed && numeroLivello != quantitaLivelli) {
 
@@ -756,6 +768,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 								break;
 							case 1:
+								//si porta nella pagina di aiuto
+								menuPage++;
+								break;
+							case 2:
 								// si esce dal gaem
 								wS.running = false;
 								break;
@@ -810,7 +826,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							}
 
 							movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score, suonoBuffer);
-							toggleEv();
+							
 							if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
 								changeLiv = true;
 								player.state = state::walking;
@@ -900,7 +916,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			UpdateWindow(hW);
 			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
 			ent++;
-			cout << menuPos << endl;
+			//si stoggla tutti i tasti di merda
+			toggleEv();
 		}
 
 		// per aumentare il contatore del tempo
