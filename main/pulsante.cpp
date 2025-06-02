@@ -2,11 +2,11 @@
 
 //inizializzazione tasti
 #pragma region tasti
-struct button W = { false, false };
-struct button A = { false, false };
-struct button S = { false, false };
-struct button D = { false, false };
-struct button J = { false, false };
+button W = { false, false };
+ button A = { false, false };
+ button S = { false, false };
+ button D = { false, false };
+ button J = { false, false };
 #pragma endregion
 
 //pressione del pulsante

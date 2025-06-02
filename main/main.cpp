@@ -8,10 +8,10 @@
 #include <unordered_map>
 #include <vector>
 #include "audio.h"
-#include "pulsante.h"
 #include "player.h"
 #include "animazione.h"
 #include "camera.h"
+#include "pulsante.h"
 
 using namespace std;
 using namespace D2D1;
@@ -74,7 +74,12 @@ RECT* playerStartPos;
 int heightSize, *livSize;//altezza livello e lunghezza livello
 
 //posizione nel menù
-int pos;
+int menuPos;
+//pagina del menu
+int menuPage = 0;
+//numero pulsanti nel menu
+int menuButtons = 2;
+
 animazione playerAnim; // animazione player
 string animIndex; // indice per l'animazione del player
 vector<vector<entity>> entities; // array per i nemici
@@ -88,6 +93,61 @@ struct WINDSTUFF {
 	bool console = true;
 	const double MAX_FPS = 60;
 }wS; // variabili per il gameloop
+
+//metodo per centrare la stringa
+void centerString(ID2D1HwndRenderTarget* pRT, string testo, D2D1_RECT_F area, int misura, short color) {
+
+	if (testo.size() % 2 == 0) {
+		int meta = testo.size() / 2;
+		//fare il metodo per scrivere la stringa al centro
+		int midX = (area.left + area.right) / 2;
+		int midY = (area.top + area.bottom) / 2;
+		for (int i = meta; i < testo.size(); i++) {
+			pRT->DrawBitmap(fontBitmap, RectF(
+				midX + misura * (i-meta),
+				midY - misura/2,
+				midX + misura * (i-meta + 1),
+				midY + misura / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (testo[i] - 48), 16 * color, 16 * (testo[i] - 48 + 1), 16 *(color +1)));
+		}
+		for (int i = meta - 1; i >= 0; i--) {
+			pRT->DrawBitmap(fontBitmap, RectF(
+				midX - misura * (meta - 1 - i),
+				midY - misura / 2,
+				midX - misura * (meta - i),
+				midY + misura / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (testo[i] - 48), 16* color, 16 * (testo[i] - 48 + 1), 16 * (color + 1)));
+		}
+	}
+	else {
+		int meta = testo.size() / 2;
+		//fare il metodo per scrivere la stringa al centro
+		int midX = (area.left + area.right) / 2;
+		int midY = (area.top + area.bottom) / 2;
+
+		//si disegna la lettera di mezzo
+		pRT->DrawBitmap(fontBitmap, RectF(
+			midX - misura / 2,
+			midY - misura / 2,
+			midX + misura / 2,
+			midY + misura / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (testo[meta] - 48), 16 * color, 16 * (testo[meta] - 48 + 1), 16 * (color + 1)));
+
+		//poi si disegnano le altre
+		for (int i = meta + 1; i < testo.size(); i++) {
+			pRT->DrawBitmap(fontBitmap, RectF(
+				midX + misura * (i - meta - 1) + misura/2,
+				midY - misura / 2,
+				midX + misura * (i - meta) + misura / 2,
+				midY + misura / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (testo[i] - 48), 16 * color, 16 * (testo[i] - 48 + 1), 16 * (color + 1)));
+		}
+		for (int i = meta - 1; i >= 0; i--) {
+			pRT->DrawBitmap(fontBitmap, RectF(
+				midX - misura * (meta - i) - misura / 2,
+				midY - misura / 2,
+				midX - misura * (meta - i - 1) - misura / 2,
+				midY + misura / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (testo[i] - 48), 16 * color, 16 * (testo[i] - 48 + 1), 16 * (color + 1)));
+		}
+	}
+	
+}
 
 #pragma region gestione_eventi
 LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
@@ -147,55 +207,61 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 				//MENU'
 				{
-					string title = "AN ASS GAME";
-					for (int i = 0; i < title.size(); i++) {
-						pRT->DrawBitmap(fontBitmap, RectF(
-							128 * (i),
-							128,
-							128 * (i + 1),
-							256), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[i] - 48), 0, 16 * (title[i] - 48 + 1), 16));
-					}
+					string title = "PLATFORM GAME";
+
+					centerString(pRT, title, RectF(0,0,SCREEN_WIDTH,500), 96, 0);
 
 					int x = 620;
 					int y = 400;
 
-					for (int i = 0; i < 1; i++) {
-						if (pos != i) {
-							for (int j = 0; j <= 5; j++) {
-								if (j == 0) {
-									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16, 16, 32));
-								}
-								else if (j == 5) {
-									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16, 48, 32));
-								}
-								else {
-									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16, 32, 32));
+					switch (menuPage) {
+					case 0:
+						for (int i = 0; i < menuButtons; i++) {
+							if (menuPos != i) {
+								for (int j = 0; j <= 5; j++) {
+									if (j == 0) {
+										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16, 16, 32));
+									}
+									else if (j == 5) {
+										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16, 48, 32));
+									}
+									else {
+										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16, 32, 32));
+									}
 								}
 							}
-							string title = "GIOCA";
-							for (int j = 0; j < title.size(); j++) {
-								pRT->DrawBitmap(fontBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[j] - 48), 0, 16 * (title[j] - 48 + 1), 16));
-							}
-						}
-						else {
-							for (int j = 0; j <= 5; j++) {
-								if (j == 0) {
-									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
-								}
-								else if (j == 5) {
-									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
-								}
-								else {
-									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
+							else {
+								for (int j = 0; j <= 5; j++) {
+									if (j == 0) {
+										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
+									}
+									else if (j == 5) {
+										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
+									}
+									else {
+										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
+									}
 								}
 							}
 
-							string title = "GIOCA";
-							for (int j = 0; j < title.size(); j++) {
-								pRT->DrawBitmap(fontBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (title[j] - 48), 0, 16 * (title[j] - 48 + 1), 16));
+							//si sceglie cosa scrivere in base al bottone
+							string title;
+							switch (i) {
+							case 0:
+								title = "GIOCA";
+								break;
+							case 1:
+								title = "ESCI";
+								break;
 							}
+
+							//si disegna
+							centerString(pRT, title, RectF(x, y + 32 * (i), x + 192, y + 32 * (i + 1)), 32, 0);
 						}
+						break;
 					}
+
+					
 				}
 			}
 			else {
@@ -336,24 +402,11 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			//disegno numero livello
 			string livelloS = "LIVELLO:" + to_string(numeroLivello + 1);
 
-			for (int i = 0; i < livelloS.size(); i++) {
-				pRT->DrawBitmap(fontBitmap, RectF(
-					200+32 * (i),
-					230,
-					200+ 32 * (i + 1),
-					262), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (livelloS[i] - 48), 16, 16 * (livelloS[i] - 48 + 1), 32));
-			}
-
+			centerString(pRT, livelloS, RectF(0, 0, SCREEN_WIDTH, 500), 96, 1 );
 
 			string startS = "START";
 
-			for (int i = 0; i < startS.size(); i++) {
-				pRT->DrawBitmap(fontBitmap, RectF(
-					200 + 32 * (i),
-					290,
-					200 + 32 * (i + 1),
-					322), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (startS[i] - 48), 16, 16 * (startS[i] - 48 + 1), 32));
-			}
+			centerString(pRT, startS, RectF(0, 200, SCREEN_WIDTH, 596), 96, 1);
 		}
 
 		pRT->EndDraw();
@@ -679,20 +732,39 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		if (deltaTime >= fps) {
 			if (waitTime == 0) {
 				if (gameOver) {
-					if (S.pressed && pos < 0) {
-						pos++;
+					if (S.pressed && menuPos < menuButtons-1) {
+						menuPos++;
 					}
-					if (W.pressed && pos > 0) {
-						pos--;
+					if (W.pressed && menuPos > 0) {
+						menuPos--;
 					}
 					if (J.pressed && numeroLivello != quantitaLivelli) {
-						gameOver = false;
-						tempo = 0;
-						toggleEv();
-						waitTime = 60;
-						//ripristina il livello, serve per ripartire
-						ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
-						music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
+
+						//si decide cosa fare in base alla pagina del menù E alla posizione nel menù
+
+						switch (menuPage) {
+						case 0:
+							switch (menuPos){
+							case 0:
+								//si starta il gaem
+								gameOver = false;
+								tempo = 0;
+								toggleEv();
+								waitTime = 60;
+								//ripristina il livello, serve per ripartire
+								ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
+								music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
+								break;
+							case 1:
+								// si esce dal gaem
+								wS.running = false;
+								break;
+							}
+							break;
+						}
+
+
+						
 					}
 				}
 				else {
@@ -828,6 +900,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			UpdateWindow(hW);
 			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
 			ent++;
+			cout << menuPos << endl;
 		}
 
 		// per aumentare il contatore del tempo
