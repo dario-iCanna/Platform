@@ -1,10 +1,10 @@
 #include "animazione.h"
 void newAnimation(animazione& a, int x, int y, int width, int height, string animIndex) {
 	a.rect[animIndex].resize(4);
-	a.rect[animIndex][0] = x;
-	a.rect[animIndex][1] = y;
-	a.rect[animIndex][2] = width;
-	a.rect[animIndex][3] = height;
+	a.rect[animIndex][0] = x;// posizione X nell'immagine
+	a.rect[animIndex][1] = y;// posizione Y nell'immagine
+	a.rect[animIndex][2] = width;// larghezza del frame
+	a.rect[animIndex][3] = height;// altezza del frame
 }
 
 void addFrame(animazione& a, int framePerImage, string animIndex) {

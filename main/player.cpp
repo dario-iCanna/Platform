@@ -354,11 +354,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH / 2;
 	}
 
-	//controllo se le vite sono a zero
-	if (player.life <= 0) {
-		ripristina = true;
-		return;
-	}
+	
 
 	if (discesa) {
 		player.state = state::jumping; // si mette lo stto di jumping
@@ -547,6 +543,7 @@ void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& ini
 		}
 	}
 	
+	//entità.r = entità.initialPos;
 	//entità.r = entità.initialPos;
 }
 

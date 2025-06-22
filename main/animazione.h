@@ -10,7 +10,7 @@ using namespace std;
 
 struct animazione {
 	unordered_map<string, vector<int>> rect;
-	unordered_map<string,vector<pair<int, int>>> framePerImage;
+	unordered_map<string, vector<pair<int, int>>> framePerImage;
 	int index;
 };
 

@@ -211,63 +211,109 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 				int y;
 				switch(menuPage){
 				case 0:
+				{
 					title = "PLATFORM GAME";
 
-					centerString(pRT, title, RectF(0,0,SCREEN_WIDTH,500), 96, 0);
+					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 500), 96, 0);
 
 					x = 620;
 					y = 400;
 
 
-						for (int i = 0; i < menuButtons; i++) {
-							if (menuPos != i) {
-								for (int j = 0; j <= 5; j++) {
-									if (j == 0) {
-										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16, 16, 32));
-									}
-									else if (j == 5) {
-										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16, 48, 32));
-									}
-									else {
-										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16, 32, 32));
-									}
+					for (int i = 0; i < menuButtons; i++) {
+						if (menuPos != i) {
+							for (int j = 0; j <= 5; j++) {
+								if (j == 0) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16, 16, 32));
+								}
+								else if (j == 5) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16, 48, 32));
+								}
+								else {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16, 32, 32));
 								}
 							}
-							else {
-								for (int j = 0; j <= 5; j++) {
-									if (j == 0) {
-										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
-									}
-									else if (j == 5) {
-										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
-									}
-									else {
-										pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
-									}
+						}
+						else {
+							for (int j = 0; j <= 5; j++) {
+								if (j == 0) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
+								}
+								else if (j == 5) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
+								}
+								else {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
 								}
 							}
+						}
 
-							//si sceglie cosa scrivere in base al bottone
-							switch (i) {
-							case 0:
-								title = "GIOCA";
-								break;
-							case 1:
-								title = "AIUTO";
-								break;
-							case 2:
-								title = "ESCI";
-								break;
-							}
+						//si sceglie cosa scrivere in base al bottone
+						switch (i) {
+						case 0:
+							title = "GIOCA";
+							break;
+						case 1:
+							title = "AIUTO";
+							break;
+						case 2:
+							title = "ESCI";
+							break;
+						}
 
-							//si disegna
-							centerString(pRT, title, RectF(x, y + 32 * (i), x + 192, y + 32 * (i + 1)), 32, 0);
-						}	
+						//si disegna
+						centerString(pRT, title, RectF(x, y + 32 * (i), x + 192, y + 32 * (i + 1)), 32, 0);
+					}
 
 					break;
+				}
 				case 1:
-					title = "COMO SE JUEGA A STA MERDA";
 
+					x = 620;
+					y = 600;
+					
+
+					for (int i = 0; i < menuButtons; i++) {
+						if (menuPos != i) {
+							for (int j = 0; j <= 5; j++) {
+								if (j == 0) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 16, 16, 32));
+								}
+								else if (j == 5) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 16, 48, 32));
+								}
+								else {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 16, 32, 32));
+								}
+							}
+						}
+						else {
+							for (int j = 0; j <= 5; j++) {
+								if (j == 0) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
+								}
+								else if (j == 5) {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
+								}
+								else {
+									pRT->DrawBitmap(buttonsBitmap, RectF(x + 32 * j, y + 32 * i, x + 32 * (j + 1), y + 32 * (i + 1)), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16, 0, 32, 16));
+								}
+							}
+						}
+
+						//si sceglie cosa scrivere in base al bottone
+						switch (i) {
+						case 0:
+							title = "BACK";
+							break;
+						}
+
+						//si disegna
+						centerString(pRT, title, RectF(x, y + 32 * (i), x + 192, y + 32 * (i + 1)), 32, 0);
+					}
+
+					//si scrive titulo
+					title = "COMO SE JUEGA A STA MERDA";
 					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 500), 32, 0);
 					
 					break;
@@ -387,12 +433,14 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 				//disegno player + hitbox
 				{
-					if (playerBitmap && player.immunity % 2 == 0)
+					if (playerBitmap)
 						pRT->DrawBitmap(playerBitmap, RectF(
 							player.r.left - cam.posX - 4,
 							player.r.top,
 							player.r.right - cam.posX + 4,
 							player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex), getAnimX(playerAnim, animIndex) + getAnimWidth(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex) + getAnimHeight(playerAnim, animIndex)));
+
+					
 
 					/*pRT->DrawRectangle(
 						RectF(
@@ -402,6 +450,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							player.r.bottom),
 						terrainBrushes[3]);*/
 				}
+				
 
 			}
 
@@ -523,6 +572,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addFrame(playerAnim, 30, "ascending");
 	newAnimation(playerAnim, 32, 16, 16, 16, "descending");
 	addFrame(playerAnim, 30, "descending");
+	newAnimation(playerAnim, 0, 48, 16, 16, "death");// animazione di morte
+	addFrame(playerAnim, 30, "death");
+	addFrame(playerAnim, 30, "death");
+	addFrame(playerAnim, INT_MAX, "death");
 
 	//creo la console
 	if (wS.console) {
@@ -681,7 +734,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	//posizioni del player per ogni livello
 	playerStartPos[0] = { 0,448,24,480 };
 	playerStartPos[1] = { 35,672,59,704 };
-	//playerStartPos[2] = { 0,448,24,480 };
+	playerStartPos[2] = { 0,448,24,480 };
 
 
 
@@ -770,12 +823,20 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							case 1:
 								//si porta nella pagina di aiuto
 								menuPage++;
+								menuButtons = 1;
+								menuPos = 0;
 								break;
 							case 2:
 								// si esce dal gaem
 								wS.running = false;
 								break;
 							}
+							break;
+						case 1:
+							//si torna indietro e si resettano le values
+							menuPage--;
+							menuButtons = 3;
+							menuPos = 0;
 							break;
 						}
 
@@ -835,6 +896,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								ripristina = true;
 							}
 
+							//controllo se le vite sono a zero
+							if (player.life <= 0) {
+								animIndex="death";
+								notRunning = 120;
+								ripristina = true;
+							}
+
 						}
 					}
 					else {
@@ -866,37 +934,40 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 						}
 					}
 					//animazioni player che si possono fare anche quando il gioco è fermo 
-					switch (player.state) {
-					case state::walking:
-						if (animIndex != "walking") {
-							reset(playerAnim, animIndex);
-							animIndex = "walking";
-						}
-						break;
-					case state::idle:
-						if (animIndex != "idle") {
-							reset(playerAnim, animIndex);
-							animIndex = "idle";
-						}
-						break;
-					case state::jumping:
-						if (player.jmpPow > 0) {
-							if (animIndex != "ascending") {
+					if (player.life > 0) {
+						switch (player.state) {
+						case state::walking:
+							if (animIndex != "walking") {
 								reset(playerAnim, animIndex);
-								animIndex = "ascending";
+								animIndex = "walking";
 							}
-						}
-						else {
-							if (animIndex != "descending") {
+							break;
+						case state::idle:
+							if (animIndex != "idle") {
 								reset(playerAnim, animIndex);
-								animIndex = "descending";
+								animIndex = "idle";
 							}
-						}
+							break;
+						case state::jumping:
+							if (player.jmpPow > 0) {
+								if (animIndex != "ascending") {
+									reset(playerAnim, animIndex);
+									animIndex = "ascending";
+								}
+							}
+							else {
+								if (animIndex != "descending") {
+									reset(playerAnim, animIndex);
+									animIndex = "descending";
+								}
+							}
 
-						break;
+							break;
+						}
 					}
+					
 
-					if (player.state == state::walking) {
+					if (player.state == state::walking && animIndex != "death") {
 						reduceFrames(playerAnim, animIndex, abs(player.vel));
 					}
 					else {
