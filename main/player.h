@@ -36,14 +36,6 @@ extern struct gameStuff {
 	unordered_map<short, int> powerUpTime; //tempo per la fine del powerup
 }player;
 
-extern struct element {
-	RECT r;
-	double vel;
-	double jmpDec;
-	double jmpPow;
-	int timeAlive;// tempo per far stare vivo un personaggio, usato solo per i nemici a -1 (le scritte mobili che non fanno un cazzo)
-};
-
 //struttura per le entità
 extern struct entity
 {

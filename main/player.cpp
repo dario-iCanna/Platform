@@ -367,7 +367,26 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 
 	if (player.state == state::jumping) {
 		player.jmpPow -= player.jmpDec;
+	
 	}
+	else if(player.life <= 0){
+		//si mette la decelerazione per il pg SOLO SE é MORT, SEnno animazioni fine liv non funzionano
+		if (player.vel > 0) {
+			player.vel -= player.dec;
+			if (abs(player.vel) < player.dec) {
+				player.vel = 0;
+			}
+		}
+
+		if (player.vel < 0) {
+			player.vel += player.dec;
+			if (abs(player.vel) < player.dec) {
+				player.vel = 0;
+			}
+		}
+	}
+
+	
 
 	movementX += player.vel; //+ movimento dipendente da entità
 	movementY += player.jmpPow; //+ movimento dipendente da entità
@@ -914,7 +933,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 
 
 	//animazione da non toccare che sono buggate a bestia
-	if (existsAnim(e.animations, e.animIndex)) {
+	if (e.animIndex != "" && existsAnim(e.animations, e.animIndex)) {
 		if (e.state == state::walking) {
 			reduceFrames(e.animations, e.animIndex, abs(e.vel));
 		}

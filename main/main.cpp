@@ -116,6 +116,7 @@ void centerString(ID2D1HwndRenderTarget* pRT, string testo, D2D1_RECT_F area, in
 				midX - misura * (meta - i),
 				midY + misura / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * (testo[i] - 48), 16* color, 16 * (testo[i] - 48 + 1), 16 * (color + 1)));
 		}
+		
 	}
 	else {
 		int meta = testo.size() / 2;
@@ -315,6 +316,14 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 					//si scrive titulo
 					title = "COMO SE JUEGA A STA MERDA";
 					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 500), 32, 0);
+
+					//si other shit
+					title = "W PARA JUMP";
+					centerString(pRT, title, RectF(0, 320, SCREEN_WIDTH, 360), 32, 0);
+					title = "A Y D PARA MOVEMENT";
+					centerString(pRT, title, RectF(0, 360, SCREEN_WIDTH, 400), 32, 0);
+					title = "J PARA SELECIONAR EN MENU";
+					centerString(pRT, title, RectF(0, 400, SCREEN_WIDTH, 440), 32, 0);
 					
 					break;
 				}
@@ -433,7 +442,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 				//disegno player + hitbox
 				{
-					if (playerBitmap)
+					if ((playerBitmap && player.immunity % 2 == 0 )|| notRunning)
 						pRT->DrawBitmap(playerBitmap, RectF(
 							player.r.left - cam.posX - 4,
 							player.r.top,
@@ -456,15 +465,32 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 		}
 		else {
-			pRT->FillRectangle(RectF(clientRect.left, clientRect.top, clientRect.right, clientRect.bottom),terrainBrushes[0]);
-			//disegno numero livello
-			string livelloS = "LIVELLO:" + to_string(numeroLivello + 1);
+			if(numeroLivello < quantitaLivelli){
+				pRT->FillRectangle(RectF(clientRect.left, clientRect.top, clientRect.right, clientRect.bottom), terrainBrushes[0]);
+				//disegno numero livello
+				string livelloS = "LIVELLO:" + to_string(numeroLivello + 1);
 
-			centerString(pRT, livelloS, RectF(0, 0, SCREEN_WIDTH, 500), 96, 1 );
+				centerString(pRT, livelloS, RectF(0, 0, SCREEN_WIDTH, 500), 96, 1);
 
-			string startS = "START";
+				string startS = "START";
 
-			centerString(pRT, startS, RectF(0, 200, SCREEN_WIDTH, 596), 96, 1);
+				centerString(pRT, startS, RectF(0, 200, SCREEN_WIDTH, 596), 96, 1);
+			}
+			else {
+				pRT->FillRectangle(RectF(clientRect.left, clientRect.top, clientRect.right, clientRect.bottom), terrainBrushes[0]);
+				//disegno messaggio finale 
+				string msg = "HAI SALVATO IL MONDO";
+
+				centerString(pRT, msg, RectF(0, -70, SCREEN_WIDTH, SCREEN_HEIGHT), 64, 1);
+				msg = "DAL GIOCO DI MERD";
+
+				centerString(pRT, msg, RectF(0, 70, SCREEN_WIDTH, SCREEN_HEIGHT), 64, 1);
+
+				msg = "J TO CONTINUE";
+
+				centerString(pRT, msg, RectF(0, 500, SCREEN_WIDTH, SCREEN_HEIGHT), 32, 1);
+			
+			}
 		}
 
 		pRT->EndDraw();
@@ -618,7 +644,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 
-	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione
+	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione SERVE PER SISTEMA DI NEMICI SLIDING WINDOW
 
 	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 0, 0);
@@ -669,10 +695,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 212, 120, 120);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
-	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
-	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 32, 16, 16, "walking");
-	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = ""; // si setta nessuna animazione
 
+	addEntity(0, 300, 416, 32, 32, 1, 0.2, 0, state::walking, 0, false);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 32, 48, 16, 16, "walking");     
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 
 
 	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true);
@@ -731,7 +760,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		//ofile << endl;
 	}
 
-	//posizioni del player per ogni livello
+	//posizioni del player starting per ogni livello
 	playerStartPos[0] = { 0,448,24,480 };
 	playerStartPos[1] = { 35,672,59,704 };
 	playerStartPos[2] = { 0,448,24,480 };
@@ -886,8 +915,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								player.powerUpTime.erase(i);
 							}
 
+							//movimento player
 							movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score, suonoBuffer);
 							
+
+							//vittoria gay livello
 							if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
 								changeLiv = true;
 								player.state = state::walking;
@@ -898,7 +930,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 							//controllo se le vite sono a zero
 							if (player.life <= 0) {
-								animIndex="death";
+								animIndex = "death";
 								notRunning = 120;
 								ripristina = true;
 							}
@@ -929,8 +961,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 							}
 							notRunning = 0;
-							if(numeroLivello < quantitaLivelli)
+							if (numeroLivello < quantitaLivelli)
 								waitTime = 60;
+							else
+								waitTime = 1;
 						}
 					}
 					//animazioni player che si possono fare anche quando il gioco è fermo 
@@ -965,9 +999,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							break;
 						}
 					}
-					
 
-					if (player.state == state::walking && animIndex != "death") {
+					if (animIndex == "death") {
+						if(player.state != state:: jumping)
+							reduceFrames(playerAnim, animIndex, 1);
+
+					}
+					else if (player.state == state::walking ) {
 						reduceFrames(playerAnim, animIndex, abs(player.vel));
 					}
 					else {
@@ -978,6 +1016,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				}
 			}
 			else {
+				//si fa per fare in modo che st prema J per continuared
+				if(numeroLivello < quantitaLivelli || J.pressed)
 				waitTime--;
 			}
 
