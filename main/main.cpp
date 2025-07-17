@@ -91,6 +91,7 @@ vector<entity> screenEn; // array tmporaneo
 struct WINDSTUFF {
 	bool running = true;
 	bool console = true;
+	LARGE_INTEGER frequency;
 	const double MAX_FPS = 60;
 }wS; // variabili per il gameloop
 
@@ -579,6 +580,10 @@ void addEntity(int levelNum, int x, int y,int width, int height, double vel, dou
 //funzione main
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
 	
+	//prendi la frequenza dei tick al secondo, per calcolare il tempo in microsecondi
+	QueryPerformanceFrequency(&wS.frequency);
+
+
 	//inizializzazione audiox2
 	InizializzaAudio();
 
@@ -697,7 +702,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = ""; // si setta nessuna animazione
 
-	addEntity(0, 300, 416, 32, 32, 1, 0.2, 0, state::walking, 0, false);
+	addEntity(0, 300, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 32, 48, 16, 16, "walking");     
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
@@ -809,7 +814,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	long long deltaTime;
 	QueryPerformanceCounter(&start); // prendo il tempo iniziale
 	MSG msg;
-	int ent = 0;
+	double fpsTimer = 0;
+	int frameCount = 0;
+	double tempoPerFrame = 0; // si calcola il tempo per ogni frame, che va aggiunto al controllo
 
 	// Game loop 
 	while (wS.running){
@@ -819,8 +826,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		}
 		QueryPerformanceCounter(&end); // prendo il tempo finale e calcolo il delta time
 		deltaTime =  end.QuadPart - start.QuadPart;
+		double microsecondiTempo = (double)deltaTime * 1000000.0 / (double)wS.frequency.QuadPart;
+
+		
+
 		//controllo se il tempo è maggiore del frame per secondo
-		if (deltaTime >= fps) {
+		if (microsecondiTempo + tempoPerFrame >= fps) {
+
+			QueryPerformanceCounter(&start); // calcolo tempo frame
+
 			if (waitTime == 0) {
 				if (gameOver) {
 					if (S.pressed && menuPos < menuButtons-1) {
@@ -850,14 +864,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 								break;
 							case 1:
-								//si porta nella pagina di aiuto
+								//si porta nella pagina di aiuto cambiando values
 								menuPage++;
 								menuButtons = 1;
 								menuPos = 0;
 								break;
 							case 2:
 								// si esce dal gaem
-								wS.running = false;
+								DestroyWindow(hW);
 								break;
 							}
 							break;
@@ -1025,17 +1039,27 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			//RedrawWindow(hW, NULL, NULL, RDW_INTERNALPAINT | RDW_UPDATENOW | RDW_INVALIDATE);
 			InvalidateRect(hW, NULL, TRUE);
 			UpdateWindow(hW);
-			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
-			ent++;
+
 			//si stoggla tutti i tasti di merda
 			toggleEv();
+
+			QueryPerformanceCounter(&end); // prendo il tempo finale e calcolo il delta time
+			deltaTime = end.QuadPart - start.QuadPart;
+			tempoPerFrame = (double)deltaTime * 1000000.0 / (double)wS.frequency.QuadPart; // si aggiunge il tempo del frame, poi si calcolano gli FPS e si aggiunge il valore del secondo al tempo
+
+			// FPS Counter
+			fpsTimer += microsecondiTempo + tempoPerFrame;
+			frameCount++;
+			if (fpsTimer >= 1'000'000.0) {
+				std::cout << "FPS: " << frameCount << std::endl;
+				fpsTimer -= 1'000'000.0;
+				frameCount = 0;
+				tempo++;
+			}
+
+			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
 		}
 
-		// per aumentare il contatore del tempo
-		if (ent >= wS.MAX_FPS) {			
-			tempo++;
-			ent = 0;
-		}
 	}
 	return 0;
 }

@@ -591,6 +591,7 @@ void ripristinoPlayer(RECT pos) {
 //movimento entità da rifare
 void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab) {
 	bool stop = false;
+	bool collisionDestroy = false;
 
 	//si controlla se il nemico è fuori dallo schermo
 	if (e.r.right < cam.posX || e.r.left <= 0) {
@@ -605,7 +606,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 
 	bool turning = false;
 
-	//cambio animazione in base allo stato e poi in base all'azione
+	//cambio animazione in base allo stato e poi in base all'azione ANIMAZIONI STANDARD
 	switch (e.state) {
 	case state::walking:
 		if (e.vel == 0) {
@@ -640,11 +641,11 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 		break;
 	}
 
-	// si diminuisce il numero delle azioni
+	// si diminuisce il numero delle azioni 
 	for (tuple<short, short, short>& i : e.actions) {
-		if (get<0>(i) >= 0) {
-			if(get<1>(i) > 0)
-			get<1>(i)--;
+		if (get<0>(i) >= 0) {// si guardano le azioni attive, non quelle power up
+			if(get<1>(i) > 0) // si scorre l'azione diminuendo il tempo per cui accada
+				get<1>(i)--;
 			
 			if (get<1>(i) == 0) {
 				//azione per get 0
@@ -683,6 +684,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 									"walking",
 									true
 								});
+							addActionToEnemy(uot[uot.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
 							newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
 							addFrame(uot[uot.size() - 1].animations, 1, "walking");
 						}
@@ -707,6 +709,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 									"walking",
 									true
 								});
+							addActionToEnemy(uot[uot.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
 							newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
 							addFrame(uot[uot.size() - 1].animations, 1, "walking");
 						}
@@ -755,6 +758,10 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 					}
 
 					break;
+				case 8://distruggi in collision
+					collisionDestroy = true;
+					get<1>(i)++;
+					break;
 				}
 					
 			}
@@ -786,7 +793,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 			if (e.r.left / BLOCK_SIZE + e.eBlockWidth == e.r.right / BLOCK_SIZE && e.r.right % BLOCK_SIZE != 0) {
 				limit++;
 			}
-			if (e.state != state::jumping && e.type != 3) {
+			if (e.state != state::jumping) {
 
 				int count = 0;
 				for (int i = 0; i < limit; i++) {
@@ -812,7 +819,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 					}
 				}
 			}
-			//controllo collisioni si elimina la palla di cannone se tocca un muro
+			//controllo collisioni si elimina se ha collision death
 			limit = e.eBlockHeight;
 			if (e.r.top / BLOCK_SIZE + e.eBlockHeight == e.r.bottom / BLOCK_SIZE && (int)(e.r.bottom - e.jmpPow) % BLOCK_SIZE != 0) {
 				limit++;
@@ -822,14 +829,14 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 				for (int i = 0; i < limit; i++) {
 					if (e.vel < 0 && sideColl(livello[(e.r.left + (int)e.vel) / BLOCK_SIZE][(int)(e.r.top - e.jmpPow) / BLOCK_SIZE + i]) == true) {
 						e.vel = -e.vel;
-						if (e.type == 3) {
+						if (collisionDestroy) {
 							elimina = true;
 						}
 						break;
 					}
 					if (e.vel > 0 && sideColl(livello[(e.r.right + (int)e.vel) / BLOCK_SIZE][(int)(e.r.top - e.jmpPow) / BLOCK_SIZE + i]) == true) {
 						e.vel = -e.vel;
-						if (e.type == 3) {
+						if (collisionDestroy) {
 							elimina = true;
 						}
 						break;

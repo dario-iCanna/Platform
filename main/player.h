@@ -44,15 +44,14 @@ extern struct entity
 	double jmpDec;
 	double jmpPow;
 	int state;//usato per collisioniNshit
-	short type;//-1 per scritte 0 per normal 1 per piattaforme mobili 2 per cannone 3 per proiettile 4 per cuore 5 power up
-	vector<tuple<short, short, short>> actions;
+	short type;//0 per normal (uccisione da sopra) 1 per piattaforme mobili 2 per no collision 3 per collision male ovunque 4 per oggetto raccoglibile, con effetto in action -1
+	vector<tuple<short, short, short>> actions; //tipo azione (che usa variabili * 100) , tempo per azione (il set iniziale vale per la prima azione) e tempo usato per resettare l'azione.
 	animazione animations;
 	int eBlockWidth;
 	int eBlockHeight;
 	bool facingLeft;
 	string animIndex;
 	bool differentSideAnimation;
-	int timeAlive;// tempo per far stare vivo un personaggio, usato solo per i nemici a -1 (le scritte mobili che non fanno un cazzo)
 };
 
 
