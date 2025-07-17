@@ -32,7 +32,8 @@ struct gameStuff player = {
 	player.maxLife = 3,
 	player.immunity = 90,
 	player.initialImmunity = 90,
-	player.facingLeft = true
+	player.facingLeft = true,
+	player.shooting = false
 };
 bool discesa;
 int movementX = 0, movementY = 0;
@@ -179,6 +180,62 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		break;
 	}
 
+	//azione che dipende dal powerUP
+	if (S.pressed) {
+		double vel = 7;
+
+
+		if (!player.facingLeft && player.shooting) {
+			PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+
+			screenEn.push_back({
+					{player.r.right+ 7, player.r.top + 7, player.r.right + BLOCK_SIZE +7, player.r.bottom - 7},  // r
+					vel,                  // vel
+					0.0,                   // jmpDec
+					0.0,                   // jmpPow (default value, change if needed)
+					 state::walking,        // state
+					3,
+					{},
+					{},
+					1,
+					1,
+					true,
+					"walking",
+					true
+				});
+			addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
+			newAnimation(screenEn[screenEn.size() - 1].animations, 0, 48, 16, 16, "walking");
+			addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
+			cout << screenEn.size() << endl;
+
+		}
+		else if(player.shooting){
+			PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+
+			screenEn.push_back({
+					{player.r.left - BLOCK_SIZE - 7, player.r.top + 7, player.r.left - 7, player.r.bottom - 7},  // r
+					-vel,                  // vel
+					0.0,                   // jmpDec
+					0.0,                   // jmpPow (default value, change if needed)
+					 state::walking,        // state
+					3,
+					{},
+					{},
+					1,
+					1,
+					true,
+					"walking",
+					true
+				});
+			addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
+			newAnimation(screenEn[screenEn.size() - 1].animations, 0, 48, 16, 16, "walking");
+			addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
+
+			cout << screenEn.size() << endl;
+
+		}
+	}
+
 	movementX += player.vel; //+ movimento dipendente da entità
 	movementY += player.jmpPow; //+ movimento dipendente da entità
 
@@ -210,6 +267,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 						player.life--;
 						PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 						player.immunity--;
+						player.shooting = false;
 					}
 				case true:
 					if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
@@ -410,6 +468,7 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 						player.life--;
 						PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 						player.immunity--;
+						player.shooting = false;
 					}
 				case true:
 					if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
@@ -581,6 +640,9 @@ void ripristinoPlayer(RECT pos) {
 		switch (i.first) {
 		case 1:
 			player.velMax = 5;
+			break;
+		case 2:
+			player.shooting = false;
 			break;
 		}
 
@@ -875,21 +937,36 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 			break;
 		case 4: // powerup Spiaccicato in 1 type solo, si usa il get<2> per l'effetto
 
-			switch (get<2>(e.actions[0])) {
-			case 0:
-				if (player.life < 3)
-					player.life++;
-				elimina = true;
-				break;
-			case 1:
-				player.velMax = 10;
-				if (player.powerUpTime[get<2>(e.actions[0])] < get<1>(e.actions[0]))
-					player.powerUpTime[get<2>(e.actions[0])] = get<1>(e.actions[0]);
-				//rimuovere l'entità dal gruppo di entità
-				elimina = true;
+
+			for (auto i : e.actions) {
+				if (get<0>(i)) {
+					switch (get<2>(i)) {
+					case 0:
+						if (player.life < 3)
+							player.life++;
+						elimina = true;
+						break;
+					case 1:
+						//si aumenta la velocità massima player
+						player.velMax = 10;
+						if (player.powerUpTime[get<2>(i)] < get<1>(i))
+							player.powerUpTime[get<2>(i)] = get<1>(i);
+						//rimuovere l'entità dal gruppo di entità
+						elimina = true;
+
+						break;
+					case 2:
+						//si da la possibilità di shootingare
+						player.shooting = true;
+						player.powerUpTime[get<2>(i)] = get<1>(i);
+						elimina = true;
+
+						break;
+					}
+				}
 				
-				break;
 			}
+			
 
 			
 
@@ -898,6 +975,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 		default:
 			if (player.immunity == player.initialImmunity && (player.r.bottom - movementY > e.r.top && player.r.top - movementY < e.r.bottom)) {
 				player.life--;
+				player.shooting = false;
 				PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si viene colpiti si fa l'audio
 				player.immunity--;
 				// si fa saltare indietro il player

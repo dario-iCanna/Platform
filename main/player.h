@@ -33,6 +33,7 @@ extern struct gameStuff {
 	short immunity;
 	short initialImmunity;
 	bool facingLeft; // variabile per disegnare
+	bool shooting; // può sparare, powerpups
 	unordered_map<short, int> powerUpTime; //tempo per la fine del powerup
 }player;
 
