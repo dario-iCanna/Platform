@@ -1,3 +1,4 @@
+﻿#include <thread>
 #include "audio.h"
 
 //XAUDIO2
@@ -107,11 +108,31 @@ audio PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, fl
 	audio suono = LeggiSuono(filename, buffer);
 	suono->FlushSourceBuffers();
 	buffer.LoopCount = loopCount;
-	audio sound = suono;
-	sound->SetVolume(volume);
-	sound->SubmitSourceBuffer(&buffer);
-	sound->Start(0);
-	return sound;
+	suono->SetVolume(volume);
+	suono->SubmitSourceBuffer(&buffer);
+	suono->Start(0);
+	return suono;
+}
+
+void PlayAudioNoReturn(const TCHAR* filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume) {
+	//si mettono le diverse info nel buffer
+	audio suono = LeggiSuono(filename, buffer);
+	suono->FlushSourceBuffers();
+	buffer.LoopCount = loopCount;
+	suono->SetVolume(volume);
+	suono->SubmitSourceBuffer(&buffer);
+	suono->Start(0);
+
+	//thread para destruccion
+	std::thread([suono]() {
+		XAUDIO2_VOICE_STATE state = {};
+		do {
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+			suono->GetState(&state);
+		} while (state.BuffersQueued > 0);
+
+		suono->DestroyVoice(); // libera la memoria
+		}).detach();
 }
 
 void StopAudio(audio suono) {

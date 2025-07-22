@@ -8,6 +8,7 @@
 #include <cmath>
 #include <typeinfo>
 #include <vector>
+#include <psapi.h>
 using namespace std;
 
 //variabili del player
@@ -38,13 +39,26 @@ struct gameStuff player = {
 bool discesa;
 int movementX = 0, movementY = 0;
 
+void printMemoryUsage(const std::string& label) {
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc))) {
+		SIZE_T memKB = pmc.WorkingSetSize / 1024;
+		std::cout << label << " - RAM: " << memKB << " KB" << std::endl;
+	}
+	else {
+		std::cerr << "Errore nella lettura della memoria\n";
+	}
+}
+
 void addActionToEnemy(entity& e, short actionType, short firstAction, short actionTime) {
 	e.actions.push_back({ actionType,firstAction, actionTime });
 }
 
 //gestione movimento del player 
-void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, bool& ripristina, int& score, audioBuffer ab)
+void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, bool& ripristina, int& score)
 {
+	int x, y;
+	
 	discesa = true;
 
 	//azioni dipendnti dallo stato (movimento)
@@ -143,7 +157,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 			player.jmpPow = player.initialJmp;
 			player.state = state::jumping;
 			player.highJump = true;
-			PlayAudio(L"./sfx/jump.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+			//PlayAudio(L"./sfx/jump.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 
 			
 		}
@@ -173,7 +187,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 			player.jmpPow = player.initialJmp;
 			player.state = state::jumping;
 			player.highJump = true;
-			PlayAudio(L"./sfx/jump.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+			//PlayAudio(L"./sfx/jump.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 
 		}
 
@@ -184,9 +198,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 	if (S.pressed) {
 		double vel = 7;
 
-
 		if (!player.facingLeft && player.shooting) {
-			PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 			screenEn.push_back({
 					{player.r.right+ 7, player.r.top + 7, player.r.right + BLOCK_SIZE +7, player.r.bottom - 7},  // r
@@ -206,11 +219,10 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 			addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
 			newAnimation(screenEn[screenEn.size() - 1].animations, 0, 48, 16, 16, "walking");
 			addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
-			cout << screenEn.size() << endl;
 
 		}
 		else if(player.shooting){
-			PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 			screenEn.push_back({
 					{player.r.left - BLOCK_SIZE - 7, player.r.top + 7, player.r.left - 7, player.r.bottom - 7},  // r
@@ -230,9 +242,6 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 			addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
 			newAnimation(screenEn[screenEn.size() - 1].animations, 0, 48, 16, 16, "walking");
 			addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
-
-			cout << screenEn.size() << endl;
-
 		}
 	}
 
@@ -245,8 +254,6 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		ripristina = true;
 		return;
 	}
-
-
 	
 	//collisioni in alto e in basso
 	{
@@ -265,7 +272,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				case 4:
 					if (player.immunity == player.initialImmunity) {
 						player.life--;
-						PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+						//PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 						player.immunity--;
 						player.shooting = false;
 					}
@@ -274,7 +281,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 						movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
 
 						if(player.state == state::jumping)
-							PlayAudio(L"./sfx/step.wav", ab, 0, 0.05); // ogni volta che si atterra si fa l'audio
+							////PlayAudio(L"./sfx/step.wav", ab, 0, 0.05); // ogni volta che si atterra si fa l'audio
 						
 						if (player.vel == 0 && !A.held && !D.held)
 							player.state = state::idle;
@@ -286,31 +293,51 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 					break;
 					//distruzione con aggiunta di score
 				case 2:
-					livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008); // si fa l'audio ogni volta che prendo una money
+					x = player.r.left / BLOCK_SIZE + i;
+					y = (player.r.bottom - movementY) / BLOCK_SIZE;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						changeLiv.push_back({ x, y, livello[x][y] }); // ci si salva il cambio che viene fatto nel livello
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008); // si fa l'audio ogni volta che prendo una money
 					score++;
 					break;
 				}
 
-			if (movementY >= 0 && player.r.bottom != 0)
-				switch (topColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE])) {
+			if (movementY > 0 && player.r.bottom != 0)
+				switch (topColl(livello[player.r.left / BLOCK_SIZE + i][(int)(player.r.top - movementY - 0.1) / BLOCK_SIZE])) { // si fa con -0.1 per aumentare la precisione e fare le collisioni anche se il valore è precisamente uguale al fondo
 					//distruzione
 				case 3:
-					PlayAudio(L"./sfx/bricks.wav", ab, 0, 0.5);
-					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
+					x = player.r.left / BLOCK_SIZE + i;
+					y = (int)(player.r.top - movementY - 0.1) / BLOCK_SIZE;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						changeLiv.push_back({ x, y, livello[x][y] }); // ci si salva il cambio che viene fatto nel livello
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/bricks.wav", ab, 0, 0.5);
 				case true:
 					if(movementY > 0)
-					movementY = ((player.r.top - movementY) / BLOCK_SIZE + 1) * BLOCK_SIZE - player.r.top;
+					movementY = player.r.top - ((int)(player.r.top - movementY - 0.1) / BLOCK_SIZE + 1) * BLOCK_SIZE;
 
 					player.jmpPow = 0;
 
 					top = true;
-
 					break;
 					//distruzione con aggiunta di score
 				case 2:
-					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+					x = player.r.left / BLOCK_SIZE + i;
+					y = (int)(player.r.top - movementY - 0.1) / BLOCK_SIZE;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						changeLiv.push_back({ x, y, livello[x][y] }); // ci si salva il cambio che viene fatto nel livello
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 
 					score++;
 					break;
@@ -348,8 +375,15 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				break;
 				//distruzione con aggiunta di score
 			case 2:
-				livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
-				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+				x = (player.r.left + movementX) / BLOCK_SIZE;
+				y = (player.r.top - movementY) / BLOCK_SIZE + i;
+
+				if (x >= 0 && x < livSize &&
+					y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+					changeLiv.push_back({ x, y, livello[x][y] }); // ci si salva il cambio che viene fatto nel livello
+					livello[x][y] = 0;
+				}
+				//PlayAudioNoReturn(L"./sfx/coin.wav", ab, 0, 0.008);
 				score++;
 			}
 
@@ -362,8 +396,15 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 				break;
 				//distruzione con aggiunta di score
 			case 2:
-				livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
-				PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+				x = (player.r.right + movementX) / BLOCK_SIZE;
+				y = (player.r.top - movementY) / BLOCK_SIZE + i;
+
+				if (x >= 0 && x < livSize &&
+					y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+					changeLiv.push_back({ x, y, livello[x][y] }); // ci si salva il cambio che viene fatto nel livello
+					livello[x][y] = 0;
+				}
+				//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 
 				score++;
 				break;
@@ -382,17 +423,21 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		for (int i = 0; i < screenEn.size(); i++) {
 			elimina = false;
 			entity& e = screenEn[i];
-			movimentoEntità(livello,livSize, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, score, ab);
+			movimentoEntità(livello,livSize, BLOCK_SIZE, e, SCREEN_WIDTH, uot, elimina, kill, top, ripristina, score);
 
 			if (elimina) {
+
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
-				break;
+				i--;
 			}
 		}
 		//si pushano tutti i nemici che sono nell'array
 		for (entity i : uot) {
 			screenEn.push_back(i);
 		}
+
+		//uot va pulito
+		uot.clear();
 	}
 	if (ripristina)
 		return;
@@ -412,15 +457,14 @@ void movimentoPlayer(int**& livello, int livSize, vector<entity>& en, vector<ent
 		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH / 2;
 	}
 
-	
-
 	if (discesa) {
 		player.state = state::jumping; // si mette lo stto di jumping
 	}
+	
 }
 
 //funzione per le animazioni del cazzo, gli do dei valori delle diverse cose e lui me le fa
-void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int& score, audioBuffer ab) {
+void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, int& score) {
 	discesa = true;
 
 	if (player.state == state::jumping) {
@@ -466,7 +510,7 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 				case 4:
 					if (player.immunity == player.initialImmunity) {
 						player.life--;
-						PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
+						//PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si atterra si fa l'audio
 						player.immunity--;
 						player.shooting = false;
 					}
@@ -475,7 +519,7 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 						movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
 
 						if (player.state == state::jumping)
-							PlayAudio(L"./sfx/step.wav", ab, 0, 0.05); // ogni volta che si atterra si fa l'audio
+							//PlayAudio(L"./sfx/step.wav", ab, 0, 0.05); // ogni volta che si atterra si fa l'audio
 
 						if (player.vel == 0 && !A.held && !D.held)
 							player.state = state::idle;
@@ -487,8 +531,14 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 					break;
 					//distruzione con aggiunta di score
 				case 2:
-					livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008); // si fa l'audio ogni volta che prendo una money
+					int x = player.r.left / BLOCK_SIZE + i;
+					int y = (player.r.bottom - movementY) / BLOCK_SIZE;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008); // si fa l'audio ogni volta che prendo una money
 					score++;
 					break;
 				}
@@ -497,19 +547,25 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 				switch ( topColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE])) {
 					//distruzione
 				case 3:
-					PlayAudio(L"./sfx/bricks.wav", ab, 0, 0.5);
+					//PlayAudio(L"./sfx/bricks.wav", ab, 0, 0.5);
 					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
 				case true:
 					if (movementY > 0)
-						movementY = ((player.r.top - movementY) / BLOCK_SIZE + 1) * BLOCK_SIZE - player.r.top;
+						movementY = player.r.top - ((player.r.top - movementY) / BLOCK_SIZE + 1) * BLOCK_SIZE ;
 
 					player.jmpPow = 0;
 
 					break;
 					//distruzione con aggiunta di score
 				case 2:
-					livello[player.r.left / BLOCK_SIZE + i][(player.r.top - movementY) / BLOCK_SIZE] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+					int x = player.r.left / BLOCK_SIZE + i;
+					int y = (player.r.top - movementY) / BLOCK_SIZE;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 
 					score++;
 					break;
@@ -538,8 +594,14 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 					break;
 					//distruzione con aggiunta di score
 				case 2:
-					livello[(player.r.left + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+					int x = (player.r.left + movementX) / BLOCK_SIZE;
+					int y = (player.r.top - movementY) / BLOCK_SIZE + i;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 					score++;
 				}
 			}
@@ -553,8 +615,14 @@ void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, i
 					break;
 					//distruzione con aggiunta di score
 				case 2:
-					livello[(player.r.right + movementX) / BLOCK_SIZE][(player.r.top - movementY) / BLOCK_SIZE + i] = 0;
-					PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
+					int x = (player.r.right + movementX) / BLOCK_SIZE;
+					int y = (player.r.top - movementY) / BLOCK_SIZE + i;
+
+					if (x >= 0 && x < livSize &&
+						y >= 0 && y < SCREEN_HEIGHT_BLOCK) {
+						livello[x][y] = 0;
+					}
+					//PlayAudio(L"./sfx/coin.wav", ab, 0, 0.008);
 
 					score++;
 					break;
@@ -609,18 +677,20 @@ short topColl(int m) {
 	}
 }
 
-void ripristino(vector<entity>& screenEn, int & size, int**& livello, int**& initialLiv, int SCREEN_HEIGHT, int BLOCK_SIZE, int livSize, RECT pos) {
+void ripristino(vector<entity>& screenEn, int& limit, int**& livello, vector<tuple<int, int, int>>& cambiamentiLivello, RECT pos){
 	ripristinoPlayer(pos);
 
-	size = 0;
+	limit = 0;
 	cam.posX = 0;
-	screenEn.resize(0);
-	for (int i = 0; i < livSize; i++) {
-		for (int j = 0; j < SCREEN_HEIGHT / BLOCK_SIZE; j++) {
-			livello[i][j] = initialLiv[i][j];
-		}
+	screenEn.clear();  // svuota i contenuti
+	screenEn.shrink_to_fit();  // forza il rilascio della memoria
+
+	for (auto c : cambiamentiLivello) {
+		livello[get<0>(c)][get<1>(c)] = get<2>(c);
 	}
-	
+
+	cambiamentiLivello.clear();
+	cambiamentiLivello.shrink_to_fit();
 	//entità.r = entità.initialPos;
 	//entità.r = entità.initialPos;
 }
@@ -651,7 +721,7 @@ void ripristinoPlayer(RECT pos) {
 }
 
 //movimento entità da rifare
-void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score, audioBuffer ab) {
+void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score) {
 	bool stop = false;
 	bool collisionDestroy = false;
 
@@ -727,7 +797,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 
 
 					if (player.r.right < e.r.left) {
-						PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+						//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 
 						if (!(e.r.left < cam.posX)) {
@@ -753,7 +823,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 						get<1>(i) = get<2>(i);
 					}
 					else if (player.r.left > e.r.right) {
-						PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+						//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 						if (!(e.r.left < cam.posX)) {
 							uot.push_back({
@@ -837,8 +907,10 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 		case 2:
 			break;
 		case 0:
+		case 5:
+		{
 			//si controlla se il player uccide il nemico
-			if (player.state == state::jumping && !kill && player.r.bottom - movementY >= e.r.top && player.r.bottom <= e.r.top && player.r.right > e.r.left && player.r.left < e.r.right && movementY < 0) {
+			if (e.type == 0 && player.state == state::jumping && !kill && player.r.bottom - movementY >= e.r.top && player.r.bottom <= e.r.top && player.r.right > e.r.left && player.r.left < e.r.right && movementY < 0) {
 				player.jmpPow = player.initialJmp;
 				player.state = state::jumping;
 				player.highJump = true;
@@ -850,6 +922,24 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 				score += 10;
 				return;
 			}
+			else if (e.type == 5) {
+				//cout << e.r.bottom << endl;
+				if (player.state == state::jumping && !kill && player.r.top - movementY <= e.r.bottom && player.r.top >= e.r.bottom && player.r.right > e.r.left && player.r.left < e.r.right && movementY >= 0) {
+					player.jmpPow = 0;
+					movementY = player.r.top - e.r.bottom;
+					discesa = true;//mette la discesa true
+					kill = true; // variabile che serve per non killare il nemico se subisci danni
+					elimina = true;// serve per rimuovere il nemico in modo ordinato
+
+
+					score += 10;
+					if (e.child) {
+						uot.push_back(*e.child);
+					}
+				}
+				return;		
+			}
+		}
 		default:
 			int limit = e.eBlockWidth;
 			if (e.r.left / BLOCK_SIZE + e.eBlockWidth == e.r.right / BLOCK_SIZE && e.r.right % BLOCK_SIZE != 0) {
@@ -935,7 +1025,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 				}
 			}
 			break;
-		case 4: // powerup Spiaccicato in 1 type solo, si usa il get<2> per l'effetto
+		case 4: // powerup Spiaccicato in 1 type solo, si usa il get<2> per l'effetto sull'azione -1
 
 
 			for (auto i : e.actions) {
@@ -976,7 +1066,7 @@ void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE,entity& e,int SCR
 			if (player.immunity == player.initialImmunity && (player.r.bottom - movementY > e.r.top && player.r.top - movementY < e.r.bottom)) {
 				player.life--;
 				player.shooting = false;
-				PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si viene colpiti si fa l'audio
+				//PlayAudio(L"./sfx/hit.wav", ab, 0, 0.5); // ogni volta che si viene colpiti si fa l'audio
 				player.immunity--;
 				// si fa saltare indietro il player
 				player.state = state::jumping;

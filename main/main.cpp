@@ -1,12 +1,14 @@
-#include <windows.h>
+ï»¿#include <windows.h>
 #include <wincodec.h>
 #include <d2d1.h>
 #include <iostream>
 #include <fstream>
 #include <string> 
 #include <iostream>
+#include <chrono>
 #include <unordered_map>
 #include <vector>
+#include <thread>
 #include "audio.h"
 #include "player.h"
 #include "animazione.h"
@@ -28,7 +30,7 @@ bool changeLiv = false; // per aumentare il livello con il ripristina
 
 audio music;//musica per il livello
 
-//variabile per dire se il gioco è over oppure no (MENU')
+//variabile per dire se il gioco Ã¨ over oppure no (MENU')
 bool gameOver = true;
 
 //tempo per dire al gaem di non runnare usato per animazioni n shit
@@ -42,13 +44,10 @@ short BLOCK_CODE = 100; // la grandezza in decimali del codice usato per i blocc
 
 short res = 0;//per resettare l'array dell'animazione quando cambia lo stato
 
-HRESULT p = CoInitializeEx(nullptr, COINIT_MULTITHREADED);//funzione per tirare in ballo funzioni COM
+HRESULT p;//funzione per tirare in ballo funzioni COM
 //factory direct 2d
 ID2D1Factory* pD2DFactory = NULL;
-HRESULT hr = D2D1CreateFactory(
-	D2D1_FACTORY_TYPE_SINGLE_THREADED,
-	&pD2DFactory
-);
+HRESULT hr;
 //render per direct 2d
 ID2D1HwndRenderTarget* pRT = NULL;
 //variabili WIC
@@ -68,12 +67,12 @@ ID2D1Bitmap* redSkyBitmap = NULL;
 ID2D1Bitmap* enemyBitmap = NULL;
 ID2D1Bitmap* buttonsBitmap = NULL;
 
-
-int ***livello, *** initialLiv, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
+int ***livello, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
 RECT* playerStartPos;
 int heightSize, *livSize;//altezza livello e lunghezza livello
+vector<tuple<int, int, int>> cambiamentiLivello;
 
-//posizione nel menù
+//posizione nel menÃ¹
 int menuPos;
 //pagina del menu
 int menuPage = 0;
@@ -83,7 +82,7 @@ int menuButtons = 3;
 animazione playerAnim; // animazione player
 string animIndex; // indice per l'animazione del player
 vector<vector<entity>> entities; // array per i nemici
-int limit = 0;
+int limit = 0; // erve per i nemici fuck shit, va ripristinato ogni volta
 vector<entity> screenEn; // array tmporaneo
 #pragma endregion
 
@@ -195,7 +194,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 		pRT->BeginDraw();//inizia il disegno
 
-		// si decide cosa disegnare se il gioco si muove oppure se c'è da aspettare
+		// si decide cosa disegnare se il gioco si muove oppure se c'Ã¨ da aspettare
 		if (waitTime == 0) {
 			if (gameOver) {
 				/*ID2D1SolidColorBrush* white;
@@ -500,7 +499,52 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 	};
 	case WM_DESTROY:
 	case WM_CLOSE:
-		pD2DFactory->Release();		
+		//svuota le robe che non sono fisse (livelli);
+		// Rilascio COM per Direct2D
+		if (pRT) { pRT->Release(); pRT = NULL; }
+		if (pD2DFactory) { pD2DFactory->Release(); pD2DFactory = NULL; }
+
+		// Rilascio array di brush
+		for (int i = 0; i < 4; ++i) {
+			if (terrainBrushes[i]) {
+				terrainBrushes[i]->Release();
+				terrainBrushes[i] = NULL;
+			}
+		}
+
+		// Rilascio bitmap
+		if (playerBitmap) { playerBitmap->Release(); playerBitmap = NULL; }
+		if (terrainBitmap) { terrainBitmap->Release(); terrainBitmap = NULL; }
+		if (fontBitmap) { fontBitmap->Release(); fontBitmap = NULL; }
+		if (cuoriBitmap) { cuoriBitmap->Release(); cuoriBitmap = NULL; }
+		if (skyBitmap) { skyBitmap->Release(); skyBitmap = NULL; }
+		if (redSkyBitmap) { redSkyBitmap->Release(); redSkyBitmap = NULL; }
+		if (enemyBitmap) { enemyBitmap->Release(); enemyBitmap = NULL; }
+		if (buttonsBitmap) { buttonsBitmap->Release(); buttonsBitmap = NULL; }
+
+		// Deallocazione array dinamici
+		if (livello) {
+			for (int i = 0; i < quantitaLivelli; ++i) {
+				if (livello[i]) {
+					for (int j = 0; j < heightSize; ++j) {
+						delete[] livello[i][j];
+					}
+					delete[] livello[i];
+				}
+			}
+			delete[] livello;
+			livello = NULL;
+		}
+
+		// Deallocazione playerStartPos
+		delete[] playerStartPos;
+		playerStartPos = NULL;
+
+		// Deallocazione livSize
+		delete[] livSize;
+		livSize = NULL;
+
+		// Ferma il main loop
 		wS.running = false;
 		break;
 		//gestione tasti tastiera
@@ -547,16 +591,37 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 	return DefWindowProc(hwnd,uInt,wParam,lParam);
 }
 #pragma endregion 
+#pragma endregion 
 
 void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
-	wicFactory->CreateDecoderFromFilename(file, NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wicDecoder); // Crea Decoder
+	wicFactory->CreateDecoderFromFilename(file, NULL, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wicDecoder);// Crea Decoder
 	wicFactory->CreateFormatConverter(&wicConverter); // crea Converter
 	wicDecoder->GetFrame(0, &wicFrame); // prende l'immagine
 	wicConverter->Initialize(wicFrame, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0.0, WICBitmapPaletteTypeCustom); // inizializza il converter
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim) {
+entity createEntity(int levelNum, int x, int y, int width, int height, double vel, double jmpDec, double jmpPow, int baseState, short type, bool differentSideAnim, entity* child) {
+	vector<tuple<short, short, short>> actions;
+	actions = {};
+	return {
+		{x, y, x + width, y + height},  // r
+		vel,                  // vel
+		jmpDec,                   // jmpDec
+		jmpPow,                    //jmpPow
+		 baseState,        // state
+		type,					//type
+		actions,//azioniÃ¹
+		{},
+		(width % BLOCK_SIZE == 0) ? width / BLOCK_SIZE : width / BLOCK_SIZE + 1,
+		(height % BLOCK_SIZE == 0) ? height / BLOCK_SIZE : height / BLOCK_SIZE + 1,
+		true,
+		"",
+		differentSideAnim,
+		child };
+}
+
+void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim, entity* child) {
 
 	vector<tuple<short, short, short>> actions;
 	actions = {};
@@ -567,25 +632,67 @@ void addEntity(int levelNum, int x, int y,int width, int height, double vel, dou
 		jmpPow,                    //jmpPow
 		 baseState,        // state
 		type,					//type
-		actions,//azioniù
+		actions,//azioniÃ¹
 		{},
 		(width % BLOCK_SIZE == 0) ? width / BLOCK_SIZE : width / BLOCK_SIZE + 1,
 		(height % BLOCK_SIZE == 0) ? height / BLOCK_SIZE : height / BLOCK_SIZE + 1,
 		true,
 		"",
-		differentSideAnim
+		differentSideAnim,
+		child
 		});
 }
 
 //funzione main
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
+
+	//creo la console
+	if (wS.console) {
+		AllocConsole();
+		FILE* fDummy;
+		freopen_s(&fDummy, "CONIN$", "r", stdin);
+		freopen_s(&fDummy, "CONOUT$", "w", stderr);
+		freopen_s(&fDummy, "CONOUT$", "w", stdout);
+		ios_base::sync_with_stdio;
+	}
+
+	//registro la finestra LA PRIMA MERDA DI COSA CHE SI FA DOPO LA CONSOLE !!!!!
+	WNDCLASS wcl = {};
+	wcl.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wcl.lpfnWndProc = Wndproc;
+	wcl.lpszClassName = L"game";
+	wcl.hInstance = hInstance;
+
+	if (!RegisterClass(&wcl)) {
+		DWORD err = GetLastError();
+		wchar_t buf[256];
+		swprintf(buf, 256, L"RegisterClass failed! Error: %lu", err);
+		MessageBox(NULL, buf, L"RegisterClass", MB_OK);
+		return 1;
+	}
+
+	// ðŸ”§ CREA LA FACTORY QUI
+	if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory))) {
+		MessageBox(NULL, L"CreateFactory fallita", L"Errore D2D", MB_OK);
+		return 6;
+	}
+
+	HWND hW = CreateWindowEx(0, wcl.lpszClassName, L"Platform", WS_OVERLAPPEDWINDOW, 40, 40, SCREEN_WIDTH, SCREEN_HEIGHT, NULL, NULL, hInstance, NULL);
+	//SetWindowPos(hW,NULL, 0, 0, SCREEN_WIDTH * 1.5, SCREEN_HEIGHT * 1.5,SWP_NOMOVE);
 	
+
+
+	// ðŸ”§ INIZIALIZZA COM QUI, DOPO che la finestra Ã¨ pronta tiri in ballo funzioni COM
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED))) {
+		MessageBox(NULL, L"CoInitializeEx fallita", L"Errore COM", MB_OK);
+		return 5;
+	}
+
 	//prendi la frequenza dei tick al secondo, per calcolare il tempo in microsecondi
 	QueryPerformanceFrequency(&wS.frequency);
 
-
 	//inizializzazione audiox2
-	InizializzaAudio();
+	//InizializzaAudio();
 
 	//prendi il suono
 	audioBuffer suonoBuffer = { 0 };
@@ -608,23 +715,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addFrame(playerAnim, 30, "death");
 	addFrame(playerAnim, INT_MAX, "death");
 
-	//creo la console
-	if (wS.console) {
-		AllocConsole();
-		FILE* fDummy;
-		freopen_s(&fDummy, "CONIN$", "r", stdin);
-		freopen_s(&fDummy, "CONOUT$", "w", stderr);
-		freopen_s(&fDummy, "CONOUT$", "w", stdout);
-		ios_base::sync_with_stdio;
-	}
 	//mi prendo il file da dove leggere i livelli
 	ifstream file;
-	ofstream ofile;
-	ofile.open("Output.txt");
 	file.open("Livelli.txt");
 
 	//roba per la bitmap di directD2
-	CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, (LPVOID*)&wicFactory); // factory WIC
+	HRESULT g = CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, (LPVOID*)&wicFactory); // factory WIC
 	file >> quantitaLivelli; // si fa cin con il file del numero dei livelli
 	//creo array della lunghezza dei livelli
 	livSize = new int[quantitaLivelli];
@@ -638,20 +734,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	// Allocazione dinamica della matrice si creano 2 livelli
 	livello = new int** [quantitaLivelli];
-	initialLiv = new int** [quantitaLivelli];
 	for (int i = 0; i < quantitaLivelli; i++) {
 		livello[i] = new int* [livSize[i]];//inizializzazione livello
-		initialLiv[i] = new int* [livSize[i]];//inizializzazione inizio livello
 		for (int j = 0; j < livSize[i]; j++) {
 			livello[i][j] = new int[SCREEN_HEIGHT_BLOCK];
-			initialLiv[i][j] = new int[SCREEN_HEIGHT_BLOCK];
 		}
 	}
 
-
 	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione SERVE PER SISTEMA DI NEMICI SLIDING WINDOW
-
-	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false);
+	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 0, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, -1, 2);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 0, 0);
@@ -664,7 +755,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 
-	addEntity(0, 230, 300, 16, 32, 0, 0, 0, state::walking, 4, false);
+	addEntity(0, 230, 300, 16, 32, 0, 0, 0, state::walking, 4, false,nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 600, 1);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "idle";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 80, 16, 16, "idle");
@@ -675,21 +766,28 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 
+	entity prova = createEntity(0, 276, 280,32,32, 0, 0.2, 0, state::walking, 4, false, nullptr);
+	addActionToEnemy(prova, -1, 600, 1);
+	prova.animIndex = "idle";
+	newAnimation(prova.animations, 0, 80, 16, 16, "idle");
+	addFrame(prova.animations, 100, "idle");
+	addFrame(prova.animations, 10, "idle");
+	addFrame(prova.animations, 10, "idle");
+	addFrame(prova.animations, 10, "idle");
+	addFrame(prova.animations, 10, "idle");
+	addFrame(prova.animations, 10, "idle");
 
-
-	addEntity(0, 260, 180,64,32, 0, 0, -1, state::walking, 1, false);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 100, 70, 70);
+	addEntity(0, 260, 280, 64, 32, 0, 0, 0, state::walking, 5, false, &prova);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-
-	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false);
+	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 212, 120, 120);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = ""; // si setta nessuna animazione
 
-	addEntity(0, 300, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false);
+	addEntity(0, 300, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 605, 0, 60);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 601, 30, 60);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -697,7 +795,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 
-	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::walking, 0, true);
+	entity powerUps = createEntity(0, 320, 320, 32, 32, 0, 0.2, 3, state::walking, 4, false, nullptr);
+	addActionToEnemy(powerUps, -1, 600, 1);
+	powerUps.animIndex = "idle";
+	newAnimation(powerUps.animations, 0, 80, 16, 16, "idle");
+	addFrame(powerUps.animations, 100, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+
+	addEntity(0, 320, 320, 32, 32, 0, 0, 0, state::walking, 5, false, &powerUps);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
+
+	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::walking, 0, true, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 1, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 500, 500, 100);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 601, 525, 100);
@@ -711,8 +825,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
 
-
-	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true);
+	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 320, 160, 300);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -727,8 +840,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
 
-
-	addEntity(0, 1600, 300, 20, 32, -1, 1, 0, state::walking, 0, true);
+	addEntity(0, 1600, 300, 20, 32, -1, 1, 0, state::walking, 0, true, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 205, 160, 300);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -744,7 +856,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
 
-	
 	// mettiamo nel livello i numeri dei blocchi
 	for (int f = 0; f < quantitaLivelli; f++) {
 		for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
@@ -753,51 +864,21 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			}
 		}
 	}
-	
-	
-
-	//trascrivo su intial liv
-	for (int f = 0; f < quantitaLivelli; f++) {
-		for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
-			for (int i = 0; i < livSize[f]; i++) {
-				initialLiv[f][i][j] = livello[f][i][j];
-				//ofile << livello[f][i][j] +14 << "\t";
-			}
-			//ofile << endl;
-		}
-		//ofile << endl;
-	}
 
 	//posizioni del player starting per ogni livello
 	playerStartPos[0] = { 0,448,24,480 };
 	playerStartPos[1] = { 35,300,59,332 };
 	playerStartPos[2] = { 0,448,24,480 };
 
-
-
 	//calcolo tempo per un frame
 	double fps = 1000000 / wS.MAX_FPS;
 
 	//calcolo misure player
-
 	int PLAYER_WIDTH = player.r.right - player.r.left;
 	int PLAYER_HEIGHT = player.r.bottom - player.r.top;
 	player.widthBlock = (PLAYER_WIDTH % BLOCK_SIZE == 0) ? PLAYER_WIDTH / BLOCK_SIZE : PLAYER_WIDTH / BLOCK_SIZE +1;
 	player.heightBlock = (PLAYER_HEIGHT % BLOCK_SIZE == 0) ? PLAYER_HEIGHT / BLOCK_SIZE : PLAYER_HEIGHT / BLOCK_SIZE+ 1;
 
-	//registro la finestra
-
-	WNDCLASS wcl = {};
-	wcl.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcl.lpfnWndProc = Wndproc;
-	wcl.lpszClassName = L"game";
-	wcl.hInstance = hInstance;
-
-	RegisterClass(&wcl);
-
-	HWND hW = CreateWindowExW(0, wcl.lpszClassName, L"Platform", WS_OVERLAPPEDWINDOW, 40, 40, SCREEN_WIDTH, SCREEN_HEIGHT, NULL, NULL, hInstance, NULL);
-	//SetWindowPos(hW,NULL, 0, 0, SCREEN_WIDTH * 1.5, SCREEN_HEIGHT * 1.5,SWP_NOMOVE);
-	ShowWindow(hW, SW_NORMAL);
 	// creazione bitmaps
 	createBitmap(L"sprites/player.png", &playerBitmap);
 	createBitmap(L"sprites/terreno.png", &terrainBitmap);
@@ -813,6 +894,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	wicDecoder->Release();
 	wicConverter->Release();
 	wicFrame->Release();
+	
 	LARGE_INTEGER start, end;
 	long long deltaTime;
 	QueryPerformanceCounter(&start); // prendo il tempo iniziale
@@ -820,6 +902,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	double fpsTimer = 0;
 	int frameCount = 0;
 	double tempoPerFrame = 0; // si calcola il tempo per ogni frame, che va aggiunto al controllo
+
+	if (hW)
+		ShowWindow(hW, SW_NORMAL);
+	else
+		return 4;
 
 	// Game loop 
 	while (wS.running){
@@ -831,9 +918,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		deltaTime =  end.QuadPart - start.QuadPart;
 		double microsecondiTempo = (double)deltaTime * 1000000.0 / (double)wS.frequency.QuadPart;
 
-		
-
-		//controllo se il tempo è maggiore del frame per secondo
+		//controllo se il tempo Ã¨ maggiore del frame per secondo
 		if (microsecondiTempo + tempoPerFrame >= fps) {
 
 			QueryPerformanceCounter(&start); // calcolo tempo frame
@@ -842,16 +927,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 				if (gameOver) {
 					if (S.pressed && menuPos < menuButtons-1) {
 						menuPos++;
-						PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
+						//PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
 
 					}
 					if (W.pressed && menuPos > 0) {
 						menuPos--;
-						PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
+						//PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
 					}
 					if (J.pressed && numeroLivello != quantitaLivelli) {
 
-						//si decide cosa fare in base alla pagina del menù E alla posizione nel menù
+						//si decide cosa fare in base alla pagina del menÃ¹ E alla posizione nel menÃ¹
 
 						switch (menuPage) {
 						case 0:
@@ -863,8 +948,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								toggleEv();
 								waitTime = 60;
 								//ripristina il livello, serve per ripartire
-								ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
-								music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
+								ripristino(screenEn,limit, livello[numeroLivello], cambiamentiLivello, playerStartPos[numeroLivello]);
+								ripristina = false;
+								//music = //PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 								break;
 							case 1:
 								//si porta nella pagina di aiuto cambiando values
@@ -900,8 +986,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							//pausa menu riprendere
 							if (J.pressed) {
 								gameOver = true;
-								StopAudio(music);
-								ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
+								//StopAudio(music);
+								ripristino(screenEn,limit, livello[numeroLivello], cambiamentiLivello, playerStartPos[numeroLivello]);
 							}
 							if (player.immunity < player.initialImmunity && player.immunity != 0)
 								player.immunity--;
@@ -913,11 +999,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 							//scorro i powerup Attivi
 							for (auto& i : player.powerUpTime) {
-								// si diminuice il tempo del power up, se è -1 è infinito
+								// si diminuice il tempo del power up, se Ã¨ -1 Ã¨ infinito
 								if (i.second > 0)
 									i.second--;
 								else if (i.second == 0) {
-									// si guarda di che tipo è il power up e si reversa la sua azione
+									// si guarda di che tipo Ã¨ il power up e si reversa la sua azione
 									switch (i.first) {
 									case 1:
 										player.velMax = 5;
@@ -936,7 +1022,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							}
 
 							//movimento player
-							movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, ripristina, score, suonoBuffer);
+							movimentoPlayer(livello[numeroLivello], livSize[numeroLivello],cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT_BLOCK, ripristina, score);
 							
 
 							//vittoria gay livello
@@ -961,23 +1047,30 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 						notRunning--;
 
 						//animazione di molto provvisoria per l'uscita dalla fine del livello (metodo per il movimento del player con le collisioni del cazzo)
-						automaticMovement(livello[numeroLivello], livSize[numeroLivello], limit, BLOCK_SIZE, SCREEN_WIDTH, score, suonoBuffer);
+						automaticMovement(livello[numeroLivello], livSize[numeroLivello], limit, BLOCK_SIZE, SCREEN_WIDTH,SCREEN_HEIGHT_BLOCK, score);
 						
 
-						//funzione da fare quando finisce il tempo nel quale il gioco è fermo
+						//funzione da fare quando finisce il tempo nel quale il gioco Ã¨ fermo
 						if (notRunning <= 0) {
 							if (changeLiv) {
+								//si fa il for per rimettere al livello i blocchi giusti e poi si svuota l'array
+								for (auto c : cambiamentiLivello) {
+									livello[numeroLivello][get<0>(c)][get<1>(c)] = get<2>(c);
+								}
+
+								cambiamentiLivello.clear();
+								cambiamentiLivello.shrink_to_fit();
 								numeroLivello++;
 								changeLiv = false;
 							}
-							if (ripristina) {
-								ripristino(screenEn, limit, livello[numeroLivello], initialLiv[numeroLivello], SCREEN_HEIGHT, BLOCK_SIZE, livSize[numeroLivello], playerStartPos[numeroLivello]);
+							if (ripristina && numeroLivello < quantitaLivelli) {
+								ripristino(screenEn,limit, livello[numeroLivello], cambiamentiLivello, playerStartPos[numeroLivello]);
 								score = 0;
 								tempo = 0;
 								ripristina = false;
-								StopAudio(music);
-								if(numeroLivello < quantitaLivelli)
-									music = PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
+								//StopAudio(music);
+								//if(numeroLivello < quantitaLivelli)
+									//music = //PlayAudio(L"./sfx/music.wav", suonoBuffer, XAUDIO2_LOOP_INFINITE, 0.04);
 
 							}
 							notRunning = 0;
@@ -987,7 +1080,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 								waitTime = 1;
 						}
 					}
-					//animazioni player che si possono fare anche quando il gioco è fermo 
+					//animazioni player che si possono fare anche quando il gioco Ã¨ fermo 
 					if (player.life > 0) {
 						switch (player.state) {
 						case state::walking:
@@ -1037,8 +1130,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			}
 			else {
 				//si fa per fare in modo che st prema J per continuared
-				if(numeroLivello < quantitaLivelli || J.pressed)
-				waitTime--;
+				if (numeroLivello < quantitaLivelli) {
+					waitTime--;
+				}
+				else if (J.pressed) {
+					waitTime = 0;
+					numeroLivello = 0;
+					menuPage = 0;
+					menuPos = 0;
+					gameOver = true;
+				}
 			}
 
 			//si ridisegna tutto
@@ -1064,8 +1165,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			}
 
 			QueryPerformanceCounter(&start); // riinizializzo il tempo iniziale
-		}
 
+		}
+		else {			
+		}
 	}
+
 	return 0;
 }

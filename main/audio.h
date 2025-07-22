@@ -14,14 +14,17 @@
 #define fourccDPDS 'sdpd'
 #endif
 
-void InizializzaAudio();
+/*
+void InizializzaAudio();*/
 
 HRESULT FindChunk(HANDLE hFile, DWORD fourcc, DWORD& dwChunkSize, DWORD& dwChunkDataPosition);
 
 HRESULT ReadChunkData(HANDLE hFile, void* buffer, DWORD buffersize, DWORD bufferoffset);
 
+/*
 IXAudio2SourceVoice* LeggiSuono(const TCHAR* filename, XAUDIO2_BUFFER& buffer);
 
-audio PlayAudio(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume);
+audio PlayAudio(const TCHAR* filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume);
+void PlayAudioNoReturn(const TCHAR *filename, XAUDIO2_BUFFER& buffer, int loopCount, float volume);
 
-void StopAudio(audio suono);
+void StopAudio(audio suono);*/
