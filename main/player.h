@@ -44,6 +44,8 @@ extern struct entity
 	double vel;
 	double jmpDec;
 	double jmpPow;
+	int movementX;
+	int movementY;
 	int state;//usato per collisioniNshit
 	short type;//0 per normal (uccisione da sopra) 1 per piattaforme mobili 2 per no collision 3 per collision male ovunque 4 per oggetto raccoglibile, (con effetto in action -1) 5 per uccisione dal basso ma no collision overall
 	vector<tuple<short, short, short>> actions; //tipo azione (che usa variabili * 100) , tempo per azione (il set iniziale vale per la prima azione) e tempo usato per resettare l'azione.
@@ -54,6 +56,11 @@ extern struct entity
 	string animIndex;
 	bool differentSideAnimation;
 	entity* child; // se voglio spawnare un nemico quando lo stronzo muore
+	bool stop; // variabile che serve per fare il movimento in maniera precisa che funziona non so perché cazzo serve ma serve
+	//roba per la collisione
+	bool turning;
+	bool collisionDestroy;
+	double intermezzoVel;
 };
 
 
@@ -63,7 +70,7 @@ void printMemoryUsage(const std::string& label);
 //aggiungere azione al nemoco
 void addActionToEnemy(entity& e, short actionType, short firstAction, short actionTime);
 
-//stato del player
+//stato del player e entity
 enum state{
 	idle = 0,
 	jumping,
@@ -92,4 +99,4 @@ void ripristino(vector<entity>& screenEn,int& limit, int**& livello, vector<tupl
 void ripristinoPlayer(RECT pos);
 
 //movimento nemici e piattaforme
-void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE, entity& e, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool top, bool& ripristina, int& score);
+void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE, entity& e, vector<entity>& entities, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool& ripristina, int& score);

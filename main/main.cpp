@@ -9,11 +9,14 @@
 #include <unordered_map>
 #include <vector>
 #include <thread>
+#include <mmsystem.h>
 #include "audio.h"
 #include "player.h"
 #include "animazione.h"
 #include "camera.h"
 #include "pulsante.h"
+
+#pragma comment(lib, "winmm.lib")
 
 using namespace std;
 using namespace D2D1;
@@ -513,36 +516,88 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		}
 
 		// Rilascio bitmap
-		if (playerBitmap) { playerBitmap->Release(); playerBitmap = NULL; }
-		if (terrainBitmap) { terrainBitmap->Release(); terrainBitmap = NULL; }
-		if (fontBitmap) { fontBitmap->Release(); fontBitmap = NULL; }
-		if (cuoriBitmap) { cuoriBitmap->Release(); cuoriBitmap = NULL; }
-		if (skyBitmap) { skyBitmap->Release(); skyBitmap = NULL; }
-		if (redSkyBitmap) { redSkyBitmap->Release(); redSkyBitmap = NULL; }
-		if (enemyBitmap) { enemyBitmap->Release(); enemyBitmap = NULL; }
-		if (buttonsBitmap) { buttonsBitmap->Release(); buttonsBitmap = NULL; }
-
-		// Deallocazione array dinamici
-		if (livello) {
-			for (int i = 0; i < quantitaLivelli; ++i) {
-				if (livello[i]) {
-					for (int j = 0; j < heightSize; ++j) {
-						delete[] livello[i][j];
-					}
-					delete[] livello[i];
-				}
-			}
-			delete[] livello;
-			livello = NULL;
+		if (playerBitmap) {
+			cout << "Release playerBitmap" << endl;
+			playerBitmap->Release();
+			playerBitmap = NULL;
 		}
 
+		if (terrainBitmap) {
+			cout << "Release terrainBitmap" << endl;
+			terrainBitmap->Release();
+			terrainBitmap = NULL;
+		}
+
+		if (fontBitmap) {
+			cout << "Release fontBitmap" << endl;
+			fontBitmap->Release();
+			fontBitmap = NULL;
+		}
+
+		if (cuoriBitmap) {
+			cout << "Release cuoriBitmap" << endl;
+			cuoriBitmap->Release();
+			cuoriBitmap = NULL;
+		}
+
+		if (skyBitmap) {
+			cout << "Release skyBitmap" << endl;
+			skyBitmap->Release();
+			skyBitmap = NULL;
+		}
+
+		if (redSkyBitmap) {
+			cout << "Release redSkyBitmap" << endl;
+			redSkyBitmap->Release();
+			redSkyBitmap = NULL;
+		}
+
+		if (enemyBitmap) {
+			cout << "Release enemyBitmap" << endl;
+			enemyBitmap->Release();
+			enemyBitmap = NULL;
+		}
+
+		if (buttonsBitmap) {
+			cout << "Release buttonsBitmap" << endl;
+			buttonsBitmap->Release();
+			buttonsBitmap = NULL;
+		}
+
+
+		// Deallocazione array dinamici
+		try {
+			if (livello) {
+				for (int i = 0; i < quantitaLivelli; ++i) {
+					if (livello[i]) {
+						for (int j = 0; j < heightSize; ++j) {
+							delete[] livello[i][j];
+						}
+						delete[] livello[i];
+					}
+				}
+				delete[] livello;
+				livello = NULL;
+			}
+		}
+		catch (...) {
+			cout << "qualcosa non ha funzionato" << endl;
+		}
+		cout << "Rilasciti Livelli" << endl;
+		
 		// Deallocazione playerStartPos
 		delete[] playerStartPos;
 		playerStartPos = NULL;
 
+		cout << "Rilasciti Posizioni Player" << endl;
+
 		// Deallocazione livSize
 		delete[] livSize;
 		livSize = NULL;
+
+		cout << "Rilasciti Size Livelli" << endl;
+
+		timeEndPeriod(1); // alla fine PER IL TIMER CHE VIENE RIMESSO APPOSTo
 
 		// Ferma il main loop
 		wS.running = false;
@@ -609,6 +664,7 @@ entity createEntity(int levelNum, int x, int y, int width, int height, double ve
 		vel,                  // vel
 		jmpDec,                   // jmpDec
 		jmpPow,                    //jmpPow
+		0,0,
 		 baseState,        // state
 		type,					//type
 		actions,//azioniù
@@ -618,7 +674,7 @@ entity createEntity(int levelNum, int x, int y, int width, int height, double ve
 		true,
 		"",
 		differentSideAnim,
-		child };
+		child,0,0,0 };
 }
 
 void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim, entity* child) {
@@ -630,6 +686,7 @@ void addEntity(int levelNum, int x, int y,int width, int height, double vel, dou
 		vel,                  // vel
 		jmpDec,                   // jmpDec
 		jmpPow,                    //jmpPow
+		0,0,
 		 baseState,        // state
 		type,					//type
 		actions,//azioniù
@@ -639,12 +696,15 @@ void addEntity(int levelNum, int x, int y,int width, int height, double vel, dou
 		true,
 		"",
 		differentSideAnim,
-		child
+		child,0,0,0
 		});
 }
 
 //funzione main
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
+static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)  {
+
+	//aumentare la precisione del timer serve per lo sleep
+	timeBeginPeriod(1);
 
 	//creo la console
 	if (wS.console) {
@@ -766,18 +826,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 
-	entity prova = createEntity(0, 276, 280,32,32, 0, 0.2, 0, state::walking, 4, false, nullptr);
-	addActionToEnemy(prova, -1, 600, 1);
-	prova.animIndex = "idle";
-	newAnimation(prova.animations, 0, 80, 16, 16, "idle");
-	addFrame(prova.animations, 100, "idle");
-	addFrame(prova.animations, 10, "idle");
-	addFrame(prova.animations, 10, "idle");
-	addFrame(prova.animations, 10, "idle");
-	addFrame(prova.animations, 10, "idle");
-	addFrame(prova.animations, 10, "idle");
+	addEntity(0, 288, 100, 32, 32, 0.5, 0.4, 0, state::walking, 0, false, nullptr);
+	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
+	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
+	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	addEntity(0, 260, 280, 64, 32, 0, 0, 0, state::walking, 5, false, &prova);
+	addEntity(0, 260, 200, 64, 32, 1, 0, 1, state::walking, 1, false, nullptr);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 100, 60, 60);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 0, 60, 60);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
@@ -787,15 +843,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = ""; // si setta nessuna animazione
 
-	addEntity(0, 300, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false, nullptr);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 605, 0, 60);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 601, 30, 60);
+	addEntity(0, 307, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false, nullptr);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 604, 0, 60);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 602, 30, 60);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 32, 48, 16, 16, "walking");   
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 
-	entity powerUps = createEntity(0, 320, 320, 32, 32, 0, 0.2, 3, state::walking, 4, false, nullptr);
+	entity powerUps = createEntity(0, 320, 310, 32, 32, 0, 0.2, 5, state::walking, 4, false, nullptr);
 	addActionToEnemy(powerUps, -1, 600, 1);
 	powerUps.animIndex = "idle";
 	newAnimation(powerUps.animations, 0, 80, 16, 16, "idle");
@@ -811,7 +867,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::walking, 0, true, nullptr);
+	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::jumping, 0, true, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 1, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 500, 500, 100);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 601, 525, 100);
@@ -890,11 +946,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	createBitmap(L"sprites/buttons.png", &buttonsBitmap);
 
 	//rilascia risorse inutili
-	wicFactory->Release();
-	wicDecoder->Release();
-	wicConverter->Release();
-	wicFrame->Release();
-	
+	if (wicFactory) {
+		wicFactory->Release();
+		wicFactory = NULL;
+	}
+
+	if (wicDecoder) {
+		wicDecoder->Release();
+		wicDecoder = NULL;
+	}
+
+	if (wicConverter) {
+		wicConverter->Release();
+		wicConverter = NULL;
+	}
+
+	if (wicFrame) {
+		wicFrame->Release();
+		wicFrame = NULL;
+	}
+
 	LARGE_INTEGER start, end;
 	long long deltaTime;
 	QueryPerformanceCounter(&start); // prendo il tempo iniziale
@@ -1022,7 +1093,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 							}
 
 							//movimento player
-							movimentoPlayer(livello[numeroLivello], livSize[numeroLivello],cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT_BLOCK, ripristina, score);
+							try {
+								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello],cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT_BLOCK, ripristina, score);
+							}
+							catch (...) {
+								wS.running = false;
+							}
 							
 
 							//vittoria gay livello
@@ -1158,7 +1234,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			fpsTimer += microsecondiTempo + tempoPerFrame;
 			frameCount++;
 			if (fpsTimer >= 1'000'000.0) {
-				std::cout << "FPS: " << frameCount << std::endl;
+				try {
+					std::cout << "FPS: " << frameCount << std::endl;
+				}
+				catch (...) {}
 				fpsTimer -= 1'000'000.0;
 				frameCount = 0;
 				tempo++;
@@ -1168,8 +1247,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 		}
 		else {			
+			LARGE_INTEGER inicio, fin;
+			if (fps - (microsecondiTempo + tempoPerFrame) > 1000) {
+				QueryPerformanceCounter(&inicio);
+				Sleep(1);
+				QueryPerformanceCounter(&fin);
+				double ticSleep = fin.QuadPart - inicio.QuadPart;
+				double sleepTime = (double)ticSleep * 1000000.0 / (double)wS.frequency.QuadPart;
+				microsecondiTempo += sleepTime;
+			}
+			
 		}
 	}
-
 	return 0;
 }
