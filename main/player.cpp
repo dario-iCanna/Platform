@@ -1023,16 +1023,27 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 					break;
 				case 2: // cannones METODO ROTTISSIMO
 				{
-
-					double vel = get<0>(i) % 100;
-
+					double vel = (double)(get<0>(i) % 100)/10;
 
 					if (player.r.right < e.r.left) {
 						//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 
 						if (!(e.r.left < cam.posX)) {
-							uot.push_back({
+							if (e.child) {
+								uot.push_back(*e.child);
+								int childWidth = (uot[uot.size() - 1].r.right - uot[uot.size() - 1].r.left);
+								int childHeight = (uot[uot.size() - 1].r.bottom - uot[uot.size() - 1].r.top);
+								int enemyHeight = e.r.bottom - e.r.top;
+								uot[uot.size() - 1].vel = -vel;
+								uot[uot.size() - 1].r.left = e.r.left - childWidth;
+								uot[uot.size() - 1].r.right = e.r.left;
+								uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2;
+								uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2;
+							}
+							else {
+								//enemigo standard
+								uot.push_back({
 									{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
 									-vel,                  // vel
 									0.0,                   // jmpDec
@@ -1047,18 +1058,32 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 									true,
 									"walking",
 									true
-								});
-							addActionToEnemy(uot[uot.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
-							newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
-							addFrame(uot[uot.size() - 1].animations, 1, "walking");
+									});
+								addActionToEnemy(uot[uot.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
+								newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
+								addFrame(uot[uot.size() - 1].animations, 1, "walking");
+							}
 						}
 						get<1>(i) = get<2>(i);
 					}
 					else if (player.r.left > e.r.right) {
 						//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
-
 						if (!(e.r.left < cam.posX)) {
-							uot.push_back({
+							if (e.child) {
+								uot.push_back(*e.child);
+								int childWidth = (uot[uot.size() - 1].r.right - uot[uot.size() - 1].r.left);
+								int childHeight = (uot[uot.size() - 1].r.bottom - uot[uot.size() - 1].r.top);
+								int enemyHeight = e.r.bottom - e.r.top;
+								uot[uot.size() - 1].vel = vel;
+								uot[uot.size() - 1].r.left = e.r.right;
+								uot[uot.size() - 1].r.right = e.r.right + childWidth;
+								uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2;
+								uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2;
+								uot[uot.size() - 1].vel = vel;
+							}
+							else {
+								//enemigo standard
+								uot.push_back({
 								{e.r.right , e.r.top + 7, e.r.right + BLOCK_SIZE, e.r.bottom - 7},  // r
 									 vel,                  // vel
 									0.0,                   // jmpDec
@@ -1073,13 +1098,12 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 									true,
 									"walking",
 									true
-								});
-							addActionToEnemy(uot[uot.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
-							newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
-							addFrame(uot[uot.size() - 1].animations, 1, "walking");
+									});
+								addActionToEnemy(uot[uot.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
+								newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
+								addFrame(uot[uot.size() - 1].animations, 1, "walking");
+							}
 						}
-
-
 						get<1>(i) = get<2>(i);
 					}
 					else {
@@ -1112,7 +1136,6 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 					break;
 				case 6://velocità da valore
 					e.vel = -(double)(get<0>(i) % 100) / 10 + (!e.facingLeft * (double)(get<0>(i) % 100) / 10 * 2);
-					cout << e.vel << endl;
 					e.movementX = e.vel;
 
 					get<1>(i) = get<2>(i);
@@ -1154,16 +1177,20 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 		if (e.r.top <= c.r.bottom - c.movementY && e.r.bottom >= c.r.top - c.movementY && e.r.left + e.movementX <= c.r.right + c.movementX && e.r.right + e.movementX >= c.r.left + c.movementX) {
 			//collsione in basso
 			if (e.r.bottom <= c.r.top - c.movementY) {
-				e.movementY = e.r.bottom - (c.r.top - c.movementY);
-				e.stop = true;
-				e.movementX += c.movementX;
+				if (c.type != 4) { //si leva il 4 che non deve fare collisioni
+					e.movementY = e.r.bottom - (c.r.top - c.movementY);
+					e.stop = true;
+					e.movementX += c.movementX;
+				}
 			}
 
 			//collisione in alto
 			if (c.r.bottom <= e.r.top) {
-				c.movementY = c.r.bottom - (e.r.top - e.movementY);
-				c.stop = true;
-				c.movementX += e.movementX;
+				if (e.type != 4) { //si leva il 4 che non deve fare collisioni
+					c.movementY = c.r.bottom - (e.r.top - e.movementY);
+					c.stop = true;
+					c.movementX += e.movementX;
+				}
 			}
 		}
 
@@ -1171,7 +1198,8 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 
 	//animazione da non toccare che sono buggate a bestia
 	if (e.animIndex != "" && existsAnim(e.animations, e.animIndex)) {
-		if (e.state == state::walking) {
+
+		if (e.state == state::walking && e.animIndex == "walking") {
 			reduceFrames(e.animations, e.animIndex, abs(e.vel));
 			reduceFrames(e.animations, e.animIndex, abs(increase));
 		}

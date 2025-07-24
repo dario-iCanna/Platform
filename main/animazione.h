@@ -18,7 +18,7 @@ void newAnimation(animazione& a, int x, int y, int width, int height, string ani
 
 void addFrame(animazione& a, int framePerImage, string animIndex);
 
-int getIndex(animazione a, string animIndex);
+int getIndex(animazione a);
 
 int getAnimSize(animazione a, string animIndex);
 

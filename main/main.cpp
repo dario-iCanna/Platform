@@ -838,7 +838,29 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false, nullptr);
+	entity p = createEntity(0, 320, 310, 32, 32, 0, 0.2, 0, state::idle, 4, false, nullptr);
+	addActionToEnemy(p, -1, 600, 1);
+	p.animIndex = "idle";
+	newAnimation(p.animations, 0, 80, 16, 16, "idle");
+	addFrame(p.animations, 100, "idle");
+	addFrame(p.animations, 10, "idle");
+	addFrame(p.animations, 10, "idle");
+	addFrame(p.animations, 10, "idle");
+	addFrame(p.animations, 10, "idle");
+	addFrame(p.animations, 10, "idle");
+
+	entity powerUps = createEntity(0, 320, 310, 32, 32, 0, 0.2, 5, state::idle, 4, false, nullptr);
+	addActionToEnemy(powerUps, -1, 600, 1);
+	powerUps.animIndex = "idle";
+	newAnimation(powerUps.animations, 0, 80, 16, 16, "idle");
+	addFrame(powerUps.animations, 100, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+	addFrame(powerUps.animations, 10, "idle");
+
+	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false, &p);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 212, 120, 120);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = ""; // si setta nessuna animazione
@@ -851,16 +873,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "walking");
 
-	entity powerUps = createEntity(0, 320, 310, 32, 32, 0, 0.2, 5, state::walking, 4, false, nullptr);
-	addActionToEnemy(powerUps, -1, 600, 1);
-	powerUps.animIndex = "idle";
-	newAnimation(powerUps.animations, 0, 80, 16, 16, "idle");
-	addFrame(powerUps.animations, 100, "idle");
-	addFrame(powerUps.animations, 10, "idle");
-	addFrame(powerUps.animations, 10, "idle");
-	addFrame(powerUps.animations, 10, "idle");
-	addFrame(powerUps.animations, 10, "idle");
-	addFrame(powerUps.animations, 10, "idle");
+	
 
 	addEntity(0, 320, 320, 32, 32, 0, 0, 0, state::walking, 5, false, &powerUps);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -870,7 +883,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::jumping, 0, true, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 1, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 500, 500, 100);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 601, 525, 100);
+	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 610, 525, 100);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 0, 16, 16, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "idle");
