@@ -446,7 +446,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 						player.jmpPow = 2;
 						movementY += player.jmpPow;
 						kill = true; // variabile che serve per non killare il nemico se subisci danni
-						if (player.r.left + movementX < e.r.right && player.r.left + movementX >= e.r.left)
+						if (player.r.right > e.r.right)
 							player.vel = 3;
 						else
 							player.vel = -3;
@@ -939,8 +939,8 @@ void ripristinoPlayer(RECT pos) {
 void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vector<entity>& entities, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool& ripristina, int& score) {
 	e.stop = false;
 	e.collisionDestroy = false;
-	e.movementX = e.vel;
 	int increase = 0;
+	e.movementX = e.vel;
 
 	if (fmod(e.vel, 1) != 0) {
 		e.intermezzoVel += e.vel;
@@ -1175,6 +1175,7 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 
 		//funziona ma non so se gasa
 		if (e.r.top <= c.r.bottom - c.movementY && e.r.bottom >= c.r.top - c.movementY && e.r.left + e.movementX <= c.r.right + c.movementX && e.r.right + e.movementX >= c.r.left + c.movementX) {
+
 			//collsione in basso
 			if (e.r.bottom <= c.r.top - c.movementY) {
 				if (c.type != 4) { //si leva il 4 che non deve fare collisioni
@@ -1192,6 +1193,42 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 					c.movementX += e.movementX;
 				}
 			}
+
+			//collisione a destra (I POWERUPS non fanno la collisione aa lato)
+			if (e.type != 4 && c.type != 4) {
+				if (e.r.right < c.r.left && e.r.bottom != c.r.top && c.r.bottom != e.r.top) {
+					//si trova la metà del punto di incontro
+					int val = ((e.r.right + e.movementX) - (c.r.left + c.movementX)) / 2;
+
+					//si aggiunge al movementX
+					e.movementX -= val;
+					c.movementX += val;
+
+					//si cambia la velocità se non sta andando in quella direzione
+					if (e.movementX > 0)
+						e.vel *= -1;
+					if (c.movementX < 0)
+						c.vel *= -1;
+
+				}
+
+				//collisione a sinistra
+				if (e.r.left >= c.r.right && e.r.bottom != c.r.top && c.r.bottom != e.r.top) {
+					//si trova la metà del punto di incontro
+					int val = ((c.r.right + c.movementX) - (e.r.left + e.movementX)) / 2;
+
+					//si aggiunge al movementX
+					c.movementX -= val;
+					e.movementX += val;
+
+					//si cambia la velocità se non sta andando in quella direzione
+					if (c.movementX > 0)
+						c.vel *= -1;
+					if (e.movementX < 0)
+						e.vel *= -1;
+				}
+			}
+			
 		}
 
 	}

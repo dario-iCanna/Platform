@@ -63,8 +63,6 @@ extern struct entity
 	double intermezzoVel;
 };
 
-
-
 void printMemoryUsage(const std::string& label);
 
 //aggiungere azione al nemoco
