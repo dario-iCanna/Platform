@@ -83,7 +83,9 @@ int menuPage = 0;
 int menuButtons = 3;
 
 animazione playerAnim; // animazione player
+animazione coinAnim; // animazione coin
 string animIndex; // indice per l'animazione del player
+string coinAnimIndex; // indice per l'animazione delle mmonete
 vector<vector<entity>> entities; // array per i nemici
 int limit = 0; // erve per i nemici fuck shit, va ripristinato ogni volta
 vector<entity> screenEn; // array tmporaneo
@@ -156,7 +158,6 @@ void centerString(ID2D1HwndRenderTarget* pRT, string testo, D2D1_RECT_F area, in
 #pragma region gestione_eventi
 LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 {
-
 	switch (uInt) {
 	case WM_CREATE:
 		// Creazione del Render Target
@@ -357,10 +358,26 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						int val = livello[numeroLivello][i][j];//prende il valore totale
 						int cod = (int)floor(val / BLOCK_CODE);//prende il gruppo del blocco
 						int off = val % BLOCK_CODE; // da un offset * 16
+						int x, y, xW, yW;
 
-						pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE),
-							1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
-						);
+						//si switcha in base se i blocchi hanno animazione
+						switch (cod) {
+						case 3:
+							x = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex);
+							y = getAnimY(coinAnim, coinAnimIndex);
+							xW = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex) + getAnimWidth(coinAnim, coinAnimIndex);
+							yW = getAnimY(coinAnim, coinAnimIndex) + getAnimHeight(coinAnim, coinAnimIndex);
+
+							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE),
+								1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(x , y, xW, yW) // disegna a seconda dei valori dati il blocco giusto
+							);
+							break;
+						default:
+							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE),
+								1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
+							);
+							break;
+						}
 					}
 				}
 				prova = 0;
@@ -501,11 +518,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		break;
 	};
 	case WM_DESTROY:
-	case WM_CLOSE:
 		//svuota le robe che non sono fisse (livelli);
 		// Rilascio COM per Direct2D
-		if (pRT) { pRT->Release(); pRT = NULL; }
-		if (pD2DFactory) { pD2DFactory->Release(); pD2DFactory = NULL; }
+		if(pRT)pRT->EndDraw();
 
 		// Rilascio array di brush
 		for (int i = 0; i < 4; ++i) {
@@ -564,25 +579,25 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 			buttonsBitmap = NULL;
 		}
 
+		//deallocazione array dinamici
+		if (quantitaLivelli > 0) {
+			for (int i = 0; i < quantitaLivelli; i++) {
+				std::cout << "Deallocando livello " << i << "...\n";
 
-		// Deallocazione array dinamici
-		try {
-			if (livello) {
-				for (int i = 0; i < quantitaLivelli; ++i) {
-					if (livello[i]) {
-						for (int j = 0; j < heightSize; ++j) {
-							delete[] livello[i][j];
-						}
-						delete[] livello[i];
-					}
+				for (int j = 0; j < livSize[i]; j++) {
+					std::cout << "  Deallocando riga " << j << " di livello " << i << "\n";
+					delete[] livello[i][j];
 				}
-				delete[] livello;
-				livello = NULL;
+
+				std::cout << "  Deallocando array di righe per livello " << i << "\n";
+				delete[] livello[i];
 			}
-		}
-		catch (...) {
-			cout << "qualcosa non ha funzionato" << endl;
-		}
+			std::cout << "Deallocando array principale di livelli...\n";
+			delete[] livello;
+
+			std::cout << "Deallocazione completata.\n";
+		}		
+
 		cout << "Rilasciti Livelli" << endl;
 		
 		// Deallocazione playerStartPos
@@ -596,6 +611,12 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		livSize = NULL;
 
 		cout << "Rilasciti Size Livelli" << endl;
+
+		if (pRT) { pRT->Release(); pRT = NULL; }
+		if (pD2DFactory) { pD2DFactory->Release(); pD2DFactory = NULL; }
+		cout << "rilascio fabbriche?" << endl;
+
+		quantitaLivelli = 0;
 
 		timeEndPeriod(1); // alla fine PER IL TIMER CHE VIENE RIMESSO APPOSTo
 
@@ -656,7 +677,7 @@ void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-entity createEntity(int levelNum, int x, int y, int width, int height, double vel, double jmpDec, double jmpPow, int baseState, short type, bool differentSideAnim, entity* child) {
+entity createEntity(int levelNum, int x, int y, int width, int height, double vel, double jmpDec, double jmpPow, int baseState, short type, bool differentSideAnim,int timeAlive, entity* child) {
 	vector<tuple<short, short, short>> actions;
 	actions = {};
 	return {
@@ -674,10 +695,11 @@ entity createEntity(int levelNum, int x, int y, int width, int height, double ve
 		true,
 		"",
 		differentSideAnim,
-		child,0,0,0 };
+		timeAlive,
+		child,0,0,0,0,0 };
 }
 
-void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim, entity* child) {
+void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim, int timeAlive, entity* child) {
 
 	vector<tuple<short, short, short>> actions;
 	actions = {};
@@ -696,7 +718,8 @@ void addEntity(int levelNum, int x, int y,int width, int height, double vel, dou
 		true,
 		"",
 		differentSideAnim,
-		child,0,0,0
+		timeAlive,
+		child,0,0,0,0,0
 		});
 }
 
@@ -757,6 +780,16 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	//prendi il suono
 	audioBuffer suonoBuffer = { 0 };
 
+	//si crea animazione delle monete
+	newAnimation(coinAnim, 0, 48, 16, 16, "idle");
+	addFrame(coinAnim, 60, "idle");
+	addFrame(coinAnim, 10, "idle");
+	addFrame(coinAnim, 10, "idle");
+	addFrame(coinAnim, 10, "idle");
+
+	//si setta l'index come idle
+	coinAnimIndex = "idle";
+
 	//animazione idle
 	newAnimation(playerAnim,0, 0, 16, 16, "idle");
 	addFrame(playerAnim, 60, "idle");
@@ -774,6 +807,10 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(playerAnim, 30, "death");
 	addFrame(playerAnim, 30, "death");
 	addFrame(playerAnim, INT_MAX, "death");
+	newAnimation(playerAnim, 0, 64, 16, 16, "shooting");// animazione di sparing
+	addFrame(playerAnim, 5, "shooting");
+	addFrame(playerAnim, 5, "shooting");
+	addFrame(playerAnim, 5, "shooting");
 
 	//mi prendo il file da dove leggere i livelli
 	ifstream file;
@@ -802,7 +839,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	}
 
 	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione SERVE PER SISTEMA DI NEMICI SLIDING WINDOW
-	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false, nullptr);
+	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 0, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, -1, 2);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 0, 0);
@@ -815,7 +852,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 
-	addEntity(0, 230, 300, 16, 32, 0, 0, 0, state::walking, 4, false,nullptr);
+	addEntity(0, 230, 300, 16, 32, 0, 0, 0, state::walking, 4, false,-1 ,nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 600, 1);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "idle";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 80, 16, 16, "idle");
@@ -826,19 +863,26 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 10, "idle");
 
-	addEntity(0, 288, 100, 32, 32, 0.5, 0.4, 0, state::walking, 0, false, nullptr);
+	addEntity(0, 288, 100, 32, 32, 0.5, 0.4, 0, state::walking, 0, false, -1, nullptr);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	addEntity(0, 260, 200, 64, 32, 1, 0, 1, state::walking, 1, false, nullptr);
+	addEntity(0, 260, 200, 64, 32, 1, 0, 1, state::walking, 1, false, 100, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 100, 60, 60);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 0, 60, 60);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	entity p = createEntity(0, 320, 310, 32, 32, 0, 0.2, 0, state::idle, 4, false, nullptr);
+	addEntity(1, 260, 200, 64, 32, 1, 0, 1, state::walking, 1, false, 100, nullptr);
+	addActionToEnemy(entities[1][entities[1].size() - 1], 100, 60, 60);
+	addActionToEnemy(entities[1][entities[1].size() - 1], 0, 60, 60);
+	entities[1][entities[1].size() - 1].animIndex = "walking";
+	newAnimation(entities[1][entities[1].size() - 1].animations, 0, 16, 16, 16, "walking");
+	addFrame(entities[1][entities[1].size() - 1].animations, 1, "walking");
+
+	entity p = createEntity(0, 320, 310, 32, 32, 0, 0.2, 0, state::idle, 4, false, -1, nullptr);
 	addActionToEnemy(p, -1, 600, 1);
 	p.animIndex = "idle";
 	newAnimation(p.animations, 0, 80, 16, 16, "idle");
@@ -849,7 +893,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(p.animations, 10, "idle");
 	addFrame(p.animations, 10, "idle");
 
-	entity powerUps = createEntity(0, 320, 310, 32, 32, 0, 0.2, 5, state::idle, 4, false, nullptr);
+	entity powerUps = createEntity(0, 320, 310, 32, 32, 0, 0.2, 5, state::idle, 4, false, -1, nullptr);
 	addActionToEnemy(powerUps, -1, 600, 1);
 	powerUps.animIndex = "idle";
 	newAnimation(powerUps.animations, 0, 80, 16, 16, "idle");
@@ -860,12 +904,12 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(powerUps.animations, 10, "idle");
 	addFrame(powerUps.animations, 10, "idle");
 
-	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false, &p);
+	addEntity(0, 288, 416, 32, 32, 0, 0, 0, state::walking, 2, false, -1, &p);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 212, 120, 120);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = ""; // si setta nessuna animazione
 
-	addEntity(0, 307, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false, nullptr);
+	addEntity(0, 307, 416, 32, 32, 1, 0.2, 0, state::jumping, 3, false, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 604, 0, 60);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 602, 30, 60);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -875,12 +919,12 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 
 	
 
-	addEntity(0, 320, 320, 32, 32, 0, 0, 0, state::walking, 5, false, &powerUps);
+	addEntity(0, 320, 320, 32, 32, 0, 0, 0, state::walking, 5, false, -1, &powerUps);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::jumping, 0, true, nullptr);
+	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::jumping, 0, true, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 1, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 500, 500, 100);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 610, 525, 100);
@@ -894,7 +938,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
 
-	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true, nullptr);
+	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 320, 160, 300);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -909,7 +953,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
 
-	addEntity(0, 1600, 300, 20, 32, -1, 1, 0, state::walking, 0, true, nullptr);
+	addEntity(0, 1600, 300, 20, 32, -1, 1, 0, state::walking, 0, true, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 205, 160, 300);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 700, 0, 0);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
@@ -1105,9 +1149,13 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 								player.powerUpTime.erase(i);
 							}
 
+							if (!wS.running) {
+								return 0;
+							}
+
 							//movimento player
 							try {
-								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello],cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT_BLOCK, ripristina, score);
+								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello],cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT_BLOCK, ripristina, score, animIndex, playerAnim);
 							}
 							catch (...) {
 								wS.running = false;
@@ -1170,10 +1218,11 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 						}
 					}
 					//animazioni player che si possono fare anche quando il gioco è fermo 
-					if (player.life > 0) {
+					if (player.life > 0 && animIndex != "shooting") {
 						switch (player.state) {
 						case state::walking:
 							if (animIndex != "walking") {
+								cout << animIndex << endl;
 								reset(playerAnim, animIndex);
 								animIndex = "walking";
 							}
@@ -1207,14 +1256,25 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 							reduceFrames(playerAnim, animIndex, 1);
 
 					}
-					else if (player.state == state::walking ) {
+					else if (player.state == state::walking && animIndex == "walking") {
 						reduceFrames(playerAnim, animIndex, abs(player.vel));
 					}
 					else {
 						reduceFrames(playerAnim, animIndex, 1);
 					}
-					if (getFrames(playerAnim, animIndex) <= 0)
+					if (getFrames(playerAnim, animIndex) <= 0) {
 						goForward(playerAnim, animIndex);
+						if (animIndex == "shooting" && getIndex(playerAnim) == 0) {
+							animIndex = "idle";
+							reset(playerAnim, animIndex);
+						}
+					}
+
+
+					//animazione coin
+					reduceFrames(coinAnim, coinAnimIndex, 1);
+					if (getFrames(coinAnim, coinAnimIndex) <= 0)
+						goForward(coinAnim, coinAnimIndex);
 				}
 			}
 			else {

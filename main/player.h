@@ -55,12 +55,14 @@ extern struct entity
 	bool facingLeft;
 	string animIndex;
 	bool differentSideAnimation;
+	int timeAlive; // tempo per vivere, se arriva a 0 si mette elimina a true, se è a -1 sta vivo sempre
 	entity* child; // se voglio spawnare un nemico quando lo stronzo muore
 	bool stop; // variabile che serve per fare il movimento in maniera precisa che funziona non so perché cazzo serve ma serve
 	//roba per la collisione
 	bool turning;
 	bool collisionDestroy;
 	double intermezzoVel;
+	bool elimina;
 };
 
 void printMemoryUsage(const std::string& label);
@@ -76,7 +78,7 @@ enum state{
 };
 
 //metodo movimento del player
-void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, bool& ripristina, int& score);
+void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, bool& ripristina, int& score, string& animIndex, animazione& playerAnim);
 
 //funzione per le animazioni n shit
 void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, int& score);
@@ -97,4 +99,4 @@ void ripristino(vector<entity>& screenEn,int& limit, int**& livello, vector<tupl
 void ripristinoPlayer(RECT pos);
 
 //movimento nemici e piattaforme
-void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE, entity& e, vector<entity>& entities, int SCREEN_WIDTH, vector<entity>& uot, bool& elimina, bool& kill, bool& ripristina, int& score);
+void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE, entity& e, vector<entity>& entities, int SCREEN_WIDTH, vector<entity>& uot, bool& kill, bool& ripristina, int& score);
