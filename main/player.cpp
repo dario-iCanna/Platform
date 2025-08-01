@@ -201,8 +201,9 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 		if (!player.facingLeft && player.shooting) {
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
-			screenEn.push_back({
-					{player.r.right, player.r.top + 7, player.r.right + BLOCK_SIZE, player.r.bottom - 7},  // r
+			if (!sideColl(livello[player.r.right / BLOCK_SIZE][(player.r.top + 7)/BLOCK_SIZE]) && !sideColl(livello[(player.r.right + 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE])) {
+				screenEn.push_back({
+					{player.r.right, player.r.top + 7, player.r.right + 10, player.r.bottom - 7},  // r
 					vel,                  // vel
 					0.0,                   // jmpDec
 					0.0,                   // jmpPow (default value, change if needed)
@@ -217,37 +218,41 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 					"walking",
 					true,
 					10, nullptr, 0,0,0,0,0
-				});
-			addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
-			newAnimation(screenEn[screenEn.size() - 1].animations, 0, 48, 16, 16, "walking");
-			addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
+					});
+				addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
+				newAnimation(screenEn[screenEn.size() - 1].animations, 16, 16, 16, 16, "walking");
+				addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
+			}
+			
 			
 			animIndex = "shooting";
 			reset(playerAnim, animIndex);
 		}
 		else if(player.shooting){
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+			if (!sideColl(livello[player.r.left / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE]) && !sideColl(livello[(player.r.left - 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE])) {
 
-			screenEn.push_back({
-					{player.r.left - BLOCK_SIZE, player.r.top + 7, player.r.left, player.r.bottom - 7},  // r
-					-vel,                  // vel
-					0.0,                   // jmpDec
-					0.0,                   // jmpPow (default value, change if needed)
-					0,0,
-					 state::walking,        // state
-					-1,
-					{},
-					{},
-					1,
-					1,
-					true,
-					"walking",
-					true,
-					10, nullptr, 0,0,0,0,0
-				});
-			addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
-			newAnimation(screenEn[screenEn.size() - 1].animations, 0, 48, 16, 16, "walking");
-			addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
+				screenEn.push_back({
+						{player.r.left - 10, player.r.top + 7, player.r.left, player.r.bottom - 7},  // r
+						-vel,                  // vel
+						0.0,                   // jmpDec
+						0.0,                   // jmpPow (default value, change if needed)
+						0,0,
+						 state::walking,        // state
+						-1,
+						{},
+						{},
+						1,
+						1,
+						true,
+						"walking",
+						true,
+						10, nullptr, 0,0,0,0,0
+					});
+				addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
+				newAnimation(screenEn[screenEn.size() - 1].animations, 16, 16, 16, 16, "walking");
+				addFrame(screenEn[screenEn.size() - 1].animations, 1, "walking");
+			}
 
 			animIndex = "shooting";
 			reset(playerAnim, animIndex);
@@ -1197,7 +1202,7 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 			if (e.type == -1 || c.type == -1) {
 				e.elimina = true;
 				c.elimina = true;
-				break;
+				continue;
 			}
 
 			//collsione in basso
@@ -1229,9 +1234,9 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 					c.movementX += val;
 
 					//si cambia la velocità se non sta andando in quella direzione
-					if (e.movementX > 0)
+					if (e.vel > 0)
 						e.vel *= -1;
-					if (c.movementX < 0)
+					if (c.vel < 0)
 						c.vel *= -1;
 				}
 
@@ -1245,9 +1250,9 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 					e.movementX += val;
 
 					//si cambia la velocità se non sta andando in quella direzione
-					if (c.movementX > 0)
+					if (c.vel > 0)
 						c.vel *= -1;
-					if (e.movementX < 0)
+					if (e.vel < 0)
 						e.vel *= -1;
 				}
 			}
