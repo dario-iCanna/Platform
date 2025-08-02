@@ -201,7 +201,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 		if (!player.facingLeft && player.shooting && shootingCooldown == 0) {
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
-			if (!sideColl(livello[player.r.right / BLOCK_SIZE][(player.r.top + 7)/BLOCK_SIZE]) && !sideColl(livello[(player.r.right + 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE])) {
+			if (sideColl(livello[player.r.right / BLOCK_SIZE][(player.r.top + 7)/BLOCK_SIZE]) != true && sideColl(livello[(player.r.right + 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE]) != true) {
 				screenEn.push_back({
 					{player.r.right, player.r.top + 7, player.r.right + 10, player.r.bottom - 7},  // r
 					vel,                  // vel
@@ -231,7 +231,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 		}
 		else if(player.shooting && shootingCooldown == 0){
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
-			if (!sideColl(livello[player.r.left / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE]) && !sideColl(livello[(player.r.left - 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE])) {
+			if (sideColl(livello[player.r.left / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE]) != true && sideColl(livello[(player.r.left - 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE]) != true) {
 
 				screenEn.push_back({
 						{player.r.left - 10, player.r.top + 7, player.r.left, player.r.bottom - 7},  // r
@@ -1223,8 +1223,9 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 				case 0:
 					e.elimina = true;
 					c.elimina = true;
+					continue;
+					break;
 				}
-				continue;
 			}
 
 			//collsione in basso

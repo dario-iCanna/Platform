@@ -457,7 +457,15 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							32 * i,
 							72), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 16, 16));
 					}
+				}
 
+				//disegno coltello
+				if (player.shooting) {
+					pRT->DrawBitmap(cuoriBitmap, RectF(
+						32 * 3,
+						40,
+						32 * 4,
+						72), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(32, 0, 48, 16));
 				}
 
 				//disegno player + hitbox
