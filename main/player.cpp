@@ -37,7 +37,7 @@ struct gameStuff player = {
 	player.shooting = false
 };
 bool discesa;
-int movementX = 0, movementY = 0;
+int movementX = 0, movementY = 0, shootingCooldown = 0;
 
 void printMemoryUsage(const std::string& label) {
 	PROCESS_MEMORY_COUNTERS_EX pmc;
@@ -198,7 +198,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 	if (S.pressed) {
 		double vel = 7;
 
-		if (!player.facingLeft && player.shooting) {
+		if (!player.facingLeft && player.shooting && shootingCooldown == 0) {
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 
 			if (!sideColl(livello[player.r.right / BLOCK_SIZE][(player.r.top + 7)/BLOCK_SIZE]) && !sideColl(livello[(player.r.right + 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE])) {
@@ -227,8 +227,9 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 			
 			animIndex = "shooting";
 			reset(playerAnim, animIndex);
+			shootingCooldown = 60;
 		}
-		else if(player.shooting){
+		else if(player.shooting && shootingCooldown == 0){
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
 			if (!sideColl(livello[player.r.left / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE]) && !sideColl(livello[(player.r.left - 10) / BLOCK_SIZE][(player.r.top + 7) / BLOCK_SIZE])) {
 
@@ -256,6 +257,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 
 			animIndex = "shooting";
 			reset(playerAnim, animIndex);
+			shootingCooldown = 60;
 		}
 	}
 
@@ -687,8 +689,14 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH / 2;
 	}
 
+	//si mette jumping
 	if (discesa) {
 		player.state = state::jumping; // si mette lo stto di jumping
+	}
+
+	//si abbassa il cooldown
+	if (shootingCooldown > 0) {
+		shootingCooldown--;
 	}
 }
 
@@ -1199,9 +1207,23 @@ void movimentoEntità(int** livello, int livSize, int BLOCK_SIZE, entity& e, vect
 		//funziona ma non so se gasa
 		if (e.r.top <= c.r.bottom - c.movementY && e.r.bottom >= c.r.top - c.movementY && e.r.left + e.movementX <= c.r.right + c.movementX && e.r.right + e.movementX >= c.r.left + c.movementX) {
 
-			if (e.type == -1 || c.type == -1) {
-				e.elimina = true;
-				c.elimina = true;
+			if (e.type == -1) {
+				switch (c.type) {
+				case 3:
+				case 0:
+					e.elimina = true;
+					c.elimina = true;
+				}
+				continue;
+				
+			}
+			else if (c.type == -1) {
+				switch (e.type) {
+				case 3:
+				case 0:
+					e.elimina = true;
+					c.elimina = true;
+				}
 				continue;
 			}
 
