@@ -196,7 +196,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 
 	//azione che dipende dal powerUP
 	if (S.pressed) {
-		double vel = 7;
+		cout << player.vel << endl;
+		double vel = 12;
 
 		if (!player.facingLeft && player.shooting && shootingCooldown == 0) {
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
@@ -217,7 +218,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 					false,
 					"walking",
 					true,
-					10, nullptr, 0,0,0,0,0
+					5, nullptr, 0,0,0,0,0
 					});
 				addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
 				newAnimation(screenEn[screenEn.size() - 1].animations, 16, 16, 16, 16, "walking");
@@ -248,7 +249,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 						true,
 						"walking",
 						true,
-						10, nullptr, 0,0,0,0,0
+						5, nullptr, 0,0,0,0,0
 					});
 				addActionToEnemy(screenEn[screenEn.size() - 1], 800, 0, 0);//ultimo enemigo si aggiunge Esplosione quando tocca muro ASs
 				newAnimation(screenEn[screenEn.size() - 1].animations, 16, 16, 16, 16, "walking");
@@ -285,6 +286,21 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 			e.elimina = false;
 			movimentoEntità(livello,livSize, BLOCK_SIZE, e,screenEn, SCREEN_WIDTH, uot, kill, ripristina, score);
 			if (e.elimina) {
+				if (e.child) {
+					uot.push_back(*e.child);
+					//si usa la r.right per la width e la r left per offset che dipende dalla direzione cioè facing Left
+					int enemyWidth = e.r.right - e.r.left;
+					int childWidth = e.child->r.right - e.child->r.left;
+					uot[uot.size() - 1].r.left = e.r.left + (enemyWidth - childWidth) / 2 + e.child->r.left * (1 - 2 * e.facingLeft);
+					uot[uot.size() - 1].r.right = e.r.right - (enemyWidth - childWidth) / 2 + e.child->r.left * (1 - 2 * e.facingLeft);
+
+
+					//si usa la r bottom per la height e la r top per offset NEGATIVO
+					int enemyHeight = e.r.bottom - e.r.top;
+					int childHeight = e.child->r.bottom - e.child->r.top;
+					uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2 - e.child->r.top;
+					uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2 - e.child->r.top;
+				}
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
 				i--;
 				break;
@@ -299,6 +315,19 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 			if (e.r.right < cam.posX + SCREEN_WIDTH) {
 				switch (e.type) {
 				case 2:
+					break;
+				case 6:
+					//si controlla se il player salta sul trampoligga
+					if (player.state == state::jumping && !kill && player.r.bottom - movementY >= e.r.top && player.r.bottom <= e.r.top && player.r.right > e.r.left && player.r.left < e.r.right && movementY < 0) {
+						player.jmpPow = 15;
+						player.state = state::jumping;
+						player.highJump = true;
+						movementY = player.r.bottom - e.r.top;
+						discesa = false;//mette la discesa quindi mette il jumping
+						kill = true; // variabile che serve per non killare il nemico se subisci danni
+						break;
+
+					}
 					break;
 				case 0:
 				case 5:
@@ -315,6 +344,7 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 
 						score += 10;
 						break;
+
 					}
 					else if (e.type == 5) {
 						//cout << e.r.bottom << endl;
@@ -327,9 +357,6 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 
 
 							score += 10;
-							if (e.child) {
-								uot.push_back(*e.child);
-							}
 						}
 						break;
 					}
@@ -405,6 +432,8 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 			if (e.type != 2 && player.r.right + movementX >= e.r.left && player.r.left + movementX <= e.r.right && player.r.top - movementY <= e.r.bottom && player.r.bottom - movementY >= e.r.top) {
 				switch (e.type) {
 				case -1:break; // si levano i proiettili del player
+				case 6:break; // si leva il trampolino jmbr
+				case 7:
 				case 1:
 					//piattaforme mobili:
 					//si controlla che si possa fare una collisione
@@ -419,6 +448,21 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 						movementY += e.movementY;
 						movementX += e.movementX;
 						discesa = false;
+
+						if (e.type == 7) {
+							//si controllano le collisioni del player per non fala cadere prematuramente
+							bool contr = false;
+							for (int i = 0; i < (player.widthBlock + player.widthPl); i++) {
+								if (movementY <= 0)
+									switch (bottomColl(livello[player.r.left / BLOCK_SIZE + i][(player.r.bottom - movementY) / BLOCK_SIZE])) {
+									case true:
+										contr = true;
+										break;
+									}
+							}
+							if(!contr)
+							e.jmpDec = 0.4;
+						}
 					}
 					break;
 				case 4: // powerup Spiaccicato in 1 type solo, si usa il get<2> per l'effetto sull'azione -1
@@ -481,6 +525,21 @@ void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& 
 			}
 
 			if (e.elimina) {
+				if (e.child) {
+					uot.push_back(*e.child);
+					//si usa la r.right per la width e la r left per offset che dipende dalla direzione cioè facing Left
+					int enemyWidth = e.r.right - e.r.left;
+					int childWidth = e.child->r.right - e.child->r.left;
+					uot[uot.size() - 1].r.left = e.r.left + (enemyWidth - childWidth) / 2 + e.child->r.left * (1 - 2 * e.facingLeft);
+					uot[uot.size() - 1].r.right = e.r.right - (enemyWidth - childWidth) / 2 + e.child->r.left * (1 - 2 * e.facingLeft);
+
+
+					//si usa la r bottom per la height e la r top per offset NEGATIVO
+					int enemyHeight = e.r.bottom - e.r.top;
+					int childHeight = e.child->r.bottom - e.child->r.top;
+					uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2 - e.child->r.top;
+					uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2 - e.child->r.top;
+				}
 				screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
 				i--;
 				break;

@@ -47,7 +47,7 @@ extern struct entity
 	int movementX;
 	int movementY;
 	int state;//usato per collisioniNshit
-	short type;//0 per normal (uccisione da sopra) 1 per piattaforme mobili 2 per no collision 3 per collision male ovunque 4 per oggetto raccoglibile, (con effetto in action -1) 5 per uccisione dal basso ma no collision overall
+	short type;//0 per normal (uccisione da sopra) 1 per piattaforme mobili 2 per no collision 3 per collision male ovunque 4 per oggetto raccoglibile, (con effetto in action -1) 5 per uccisione dal basso ma no collision overall 6 per trampolino 7 per piattaforma cadente
 	vector<tuple<short, short, short>> actions; //tipo azione (che usa variabili * 100) , tempo per azione (il set iniziale vale per la prima azione) e tempo usato per resettare l'azione.
 	animazione animations;
 	int eBlockWidth;
