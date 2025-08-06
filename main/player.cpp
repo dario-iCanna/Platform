@@ -196,8 +196,8 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 
 	//azione che dipende dal powerUP
 	if (S.pressed) {
-		cout << player.vel << endl;
 		double vel = 12;
+		
 
 		if (!player.facingLeft && player.shooting && shootingCooldown == 0) {
 			//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
@@ -1125,8 +1125,10 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 	// si diminuisce il numero delle azioni 
 	for (tuple<short, short, short>& i : e.actions) {
 		if (get<0>(i) >= 0) {// si guardano le azioni attive, non quelle power up
-			if (get<1>(i) > 0) // si scorre l'azione diminuendo il tempo per cui accada
+				// si scorre l'azione diminuendo il tempo per cui accada
+			if (get<1>(i) > 0) {
 				get<1>(i)--;
+			}
 
 			if (get<1>(i) == 0) {
 				//azione per get 0
@@ -1134,6 +1136,10 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 				case 0:  //girarsi
 					e.vel = -e.vel;
 					e.movementX = e.vel;
+					if (e.facingLeft)
+						e.facingLeft = false;
+					else
+						e.facingLeft = true;
 					get<1>(i) = get<2>(i);
 					break;
 				case 1: //cambiare la direzione verticale
@@ -1145,24 +1151,30 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 				case 2: // cannones METODO ROTTISSIMO
 				{
 					double vel = (double)(get<0>(i) % 100)/10;
+					if (e.child) {
 
-					if (player.r.right < e.r.left) {
-						//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+						uot.push_back(*e.child);
+						//si usa la r.right per la width e la r left per offset che dipende dalla direzione cioè facing Left
+						int enemyWidth = e.r.right - e.r.left;
+						int childWidth = e.child->r.right - e.child->r.left;
+						uot[uot.size() - 1].r.left = e.r.left + (enemyWidth - childWidth) / 2 + e.child->r.left * (1 - 2 * e.facingLeft);
+						uot[uot.size() - 1].r.right = e.r.right - (enemyWidth - childWidth) / 2 + e.child->r.left * (1 - 2 * e.facingLeft);
 
 
-						if (!(e.r.left < cam.posX)) {
-							if (e.child) {
-								uot.push_back(*e.child);
-								int childWidth = (uot[uot.size() - 1].r.right - uot[uot.size() - 1].r.left);
-								int childHeight = (uot[uot.size() - 1].r.bottom - uot[uot.size() - 1].r.top);
-								int enemyHeight = e.r.bottom - e.r.top;
-								uot[uot.size() - 1].vel = -vel;
-								uot[uot.size() - 1].r.left = e.r.left - childWidth;
-								uot[uot.size() - 1].r.right = e.r.left;
-								uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2;
-								uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2;
-							}
-							else {
+						//si usa la r bottom per la height e la r top per offset NEGATIVO
+						int enemyHeight = e.r.bottom - e.r.top;
+						int childHeight = e.child->r.bottom - e.child->r.top;
+						uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2 - e.child->r.top;
+						uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2 - e.child->r.top;
+						uot[uot.size() - 1].vel = vel * (1 - 2 * e.facingLeft);
+						get<1>(i) = get<2>(i);
+					}
+					else {
+						if (player.r.right < e.r.left) {
+							//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+
+
+							if (!(e.r.left < cam.posX)) {
 								//enemigo standard
 								uot.push_back({
 									{e.r.left - BLOCK_SIZE, e.r.top + 7, e.r.left, e.r.bottom - 7},  // r
@@ -1184,25 +1196,11 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 								newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
 								addFrame(uot[uot.size() - 1].animations, 1, "walking");
 							}
+							get<1>(i) = get<2>(i);
 						}
-						get<1>(i) = get<2>(i);
-					}
-					else if (player.r.left > e.r.right) {
-						//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
-						if (!(e.r.left < cam.posX)) {
-							if (e.child) {
-								uot.push_back(*e.child);
-								int childWidth = (uot[uot.size() - 1].r.right - uot[uot.size() - 1].r.left);
-								int childHeight = (uot[uot.size() - 1].r.bottom - uot[uot.size() - 1].r.top);
-								int enemyHeight = e.r.bottom - e.r.top;
-								uot[uot.size() - 1].vel = vel;
-								uot[uot.size() - 1].r.left = e.r.right;
-								uot[uot.size() - 1].r.right = e.r.right + childWidth;
-								uot[uot.size() - 1].r.top = e.r.top + (enemyHeight - childHeight) / 2;
-								uot[uot.size() - 1].r.bottom = e.r.bottom - (enemyHeight - childHeight) / 2;
-								uot[uot.size() - 1].vel = vel;
-							}
-							else {
+						else if (player.r.left > e.r.right) {
+							//PlayAudio(L"./sfx/shoot.wav", ab, 0, 0.5); // sparo Cannones
+							if (!(e.r.left < cam.posX)) {
 								//enemigo standard
 								uot.push_back({
 								{e.r.right , e.r.top + 7, e.r.right + BLOCK_SIZE, e.r.bottom - 7},  // r
@@ -1224,13 +1222,12 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 								newAnimation(uot[uot.size() - 1].animations, 0, 48, 16, 16, "walking");
 								addFrame(uot[uot.size() - 1].animations, 1, "walking");
 							}
+							get<1>(i) = get<2>(i);
 						}
-						get<1>(i) = get<2>(i);
+						else {
+							get<1>(i)++;
+						}
 					}
-					else {
-						get<1>(i)++;
-					}
-
 				}
 				break;
 				case 3: // salto
@@ -1262,13 +1259,13 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 					get<1>(i) = get<2>(i);
 					break;
 				case 7: // gira quando il player si sposta
-					if (player.r.right < e.r.left && e.vel > 0) {
+					if (player.r.right < e.r.left && e.vel >= 0) {
 						e.facingLeft = true;
 						e.vel = -e.vel;
 						e.movementX = e.vel;
 
 					}
-					else if (player.r.right > e.r.right && e.vel < 0) {
+					else if (player.r.right > e.r.right && e.vel <= 0) {
 						e.facingLeft = false;
 						e.vel = -e.vel;
 						e.movementX = e.vel;
@@ -1297,22 +1294,24 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 		//funziona ma non so se gasa
 		if (e.r.top <= c.r.bottom - c.movementY && e.r.bottom >= c.r.top - c.movementY && e.r.left + e.movementX <= c.r.right + c.movementX && e.r.right + e.movementX >= c.r.left + c.movementX) {
 
-			if (e.type == -1) {
+			if (e.type == -1 && e.vel != 0) {
 				switch (c.type) {
 				case 3:
 				case 0:
 					e.elimina = true;
 					c.elimina = true;
+					score += 10;
 				}
 				continue;
 				
 			}
-			else if (c.type == -1) {
+			else if (c.type == -1 && c.vel != 0) {
 				switch (e.type) {
 				case 3:
 				case 0:
 					e.elimina = true;
 					c.elimina = true;
+					score += 10;
 					continue;
 					break;
 				}

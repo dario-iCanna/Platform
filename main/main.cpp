@@ -766,7 +766,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 		return 6;
 	}
 
-	HWND hW = CreateWindowEx(0, wcl.lpszClassName, L"Platform", WS_OVERLAPPEDWINDOW, 40, 40, SCREEN_WIDTH, SCREEN_HEIGHT, NULL, NULL, hInstance, NULL);
+	HWND hW = CreateWindowEx(0, wcl.lpszClassName, L"Platform", WS_OVERLAPPEDWINDOW, 500, 200, SCREEN_WIDTH, SCREEN_HEIGHT, NULL, NULL, hInstance, NULL);
 	//SetWindowPos(hW,NULL, 0, 0, SCREEN_WIDTH * 1.5, SCREEN_HEIGHT * 1.5,SWP_NOMOVE);
 	
 
@@ -992,6 +992,8 @@ newAnimation(entities[0][entities[0].size() - 1].animations, 32, 0, 16, 16, "wal
 addFrame(entities[0][entities[0].size() - 1].animations, 30, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 30, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 30, "walking");
+newAnimation(entities[0][entities[0].size() - 1].animations, 128, 0, 16, 16, "ascending");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "ascending");
 newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
 
@@ -1001,7 +1003,7 @@ p.animIndex = "idle";
 newAnimation(p.animations, 96, 64, 16, 16, "idle");
 addFrame(p.animations, 1, "idle");
 
-entity cuore = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 5.0, state::jumping, 4, false, 100, nullptr);
+entity cuore = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 5.0, state::jumping, 4, false, -1, nullptr);
 addActionToEnemy(cuore, -1, -1, 0);
 cuore.animIndex = "idle";
 newAnimation(cuore.animations, 0, 64, 16, 16, "idle");
@@ -1012,6 +1014,20 @@ addFrame(cuore.animations, 10, "idle");
 addFrame(cuore.animations, 10, "idle");
 addFrame(cuore.animations, 10, "idle");
 
+entity palla = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 10.0, state::jumping, 3, true, -1, nullptr);
+palla.animIndex = "walking";
+newAnimation(palla.animations, 32, 48, 16, 16, "walking");
+addFrame(palla.animations, 20, "walking");
+addFrame(palla.animations, 20, "walking");
+addFrame(palla.animations, 20, "walking");
+
+addEntity(0, 1200, 400, 32, 32, 0.0, 0.0, 0.0, state::idle, 2, true, -1, &cuore);
+addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 207, 120, 120);
+addActionToEnemy(entities[0][entities[0].size() - 1], 700, 0, 0);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 12*16, 0, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
 
 addEntity(0, 1344, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &p);
 entities[0][entities[0].size() - 1].animIndex = "idle";
@@ -1026,6 +1042,8 @@ newAnimation(entities[0][entities[0].size() - 1].animations, 32, 0, 16, 16, "wal
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+newAnimation(entities[0][entities[0].size() - 1].animations, 128, 0, 16, 16, "ascending");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "ascending");
 newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
 
@@ -1035,6 +1053,7 @@ newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idl
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
 
 addEntity(0, 1696, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+addActionToEnemy(entities[0][entities[0].size() - 1], 307, 260, -1);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
@@ -1042,25 +1061,37 @@ newAnimation(entities[0][entities[0].size() - 1].animations, 32, 0, 16, 16, "wal
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+newAnimation(entities[0][entities[0].size() - 1].animations, 128, 0, 16, 16, "ascending");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "ascending");
 newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
 
-addEntity(0, 2100, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 3, false, -1, nullptr);
+addEntity(0, 2100, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 3, true, -1, nullptr);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 32, 48, 16, 16, "walking");
-addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
-addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 
 addEntity(0, 2496, 544, 32, 32, 0.0, 0.0, 0.0, state::idle, 6, false, -1, nullptr);
 entities[0][entities[0].size() - 1].animIndex = "idle";
 newAnimation(entities[0][entities[0].size() - 1].animations, 16, 32, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
 
-addEntity(0, 3968, 288, 32, 32, -3.0, 0.2, 0.0, state::walking, 3, false, -1, nullptr);
+addEntity(0, 3800, 400, 32, 32, -4.0, 0.0, 0.0, state::idle, 2, true, -1, &palla);
+addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 220, 120, 120);
+addActionToEnemy(entities[0][entities[0].size() - 1], 700, 0, 0);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 16 * 16, 0, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
+
+addEntity(0, 3968, 288, 32, 32, -3.0, 0.2, 0.0, state::walking, 3, true, -1, nullptr);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 32, 48, 16, 16, "walking");
-addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
-addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 
 	// mettiamo nel livello i numeri dei blocchi
 	for (int f = 0; f < quantitaLivelli; f++) {
@@ -1204,6 +1235,12 @@ addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 							numeroLivello = 0;
 						}
 						else {
+							//roba che si potrebbe fare per un ipotetico tubo
+							/*if (S.pressed) {
+								numeroLivello++;
+								ripristino(screenEn, limit, livello[numeroLivello], cambiamentiLivello, playerStartPos[numeroLivello]);
+
+							}*/
 							//pausa menu riprendere
 							if (J.pressed) {
 								gameOver = true;
@@ -1256,7 +1293,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 							
 
 							//vittoria gay livello
-							if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE) {
+							if (player.r.left >= (livSize[numeroLivello] - 2) * BLOCK_SIZE && player.state == state::walking) {
 								changeLiv = true;
 								player.state = state::walking;
 								player.vel = 1;
@@ -1315,7 +1352,6 @@ addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 						switch (player.state) {
 						case state::walking:
 							if (animIndex != "walking") {
-								cout << animIndex << endl;
 								reset(playerAnim, animIndex);
 								animIndex = "walking";
 							}
