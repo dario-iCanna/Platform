@@ -78,7 +78,7 @@ enum state{
 };
 
 //metodo movimento del player
-void movimentoPlayer(int**& livello, int livSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, bool& ripristina, int& score, string& animIndex, animazione& playerAnim);
+void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, bool& ripristina, int& score, string& animIndex, animazione& playerAnim);
 
 //funzione per le animazioni n shit
 void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, int& score);
@@ -99,4 +99,4 @@ void ripristino(vector<entity>& screenEn,int& limit, int**& livello, vector<tupl
 void ripristinoPlayer(RECT pos);
 
 //movimento nemici e piattaforme
-void movimentoEntità(int** livello,int livSize, int BLOCK_SIZE, entity& e, vector<entity>& entities, int SCREEN_WIDTH, vector<entity>& uot, bool& kill, bool& ripristina, int& score);
+void movimentoEntità(int** livello, int livSize, int heightSize, int BLOCK_SIZE, entity& e, vector<entity>& entities, int SCREEN_WIDTH, vector<entity>& uot, bool& kill, bool& ripristina, int& score);

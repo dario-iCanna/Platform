@@ -1,46 +1,33 @@
 #include "pulsante.h"
 
-//inizializzazione tasti
-#pragma region tasti
+// Inizializzazione delle variabili globali
 button W = { false, false };
- button A = { false, false };
- button S = { false, false };
- button D = { false, false };
- button J = { false, false };
-#pragma endregion
+button A = { false, false };
+button S = { false, false };
+button D = { false, false };
+button J = { false, false };
 
-//pressione del pulsante
+// Implementazione dei metodi
 void button::toggle() {
-	if (held == false) {
-		pressed = true;
-		held = true;
-	}
-	else if (held == true) {
-		pressed = false;
-	}
-};
-
-//rilascio del pulsante
-void button::release() {
-	held = false;
-	pressed = false;
+    if (!held) {
+        pressed = true;
+        held = true;
+    }
+    else {
+        pressed = false;
+    }
 }
 
- //aggiornamento del pulsante levando il pressed se è stato premuto per più di un frame
- void toggleEv() {
-	 if (W.held) {
-		 W.toggle();
-	 }
-	 if (A.held) {
-		 A.toggle();
-	 }
-	 if (S.held) {
-		 S.toggle();
-	 }
-	 if (D.held) {
-		 D.toggle();
-	 }
-	 if (J.held) {
-		 J.toggle();
-	 }
- }
+void button::release() {
+    held = false;
+    pressed = false;
+}
+
+// Aggiornamento dei pulsanti
+void toggleEv() {
+    if (W.held) W.toggle();
+    if (A.held) A.toggle();
+    if (S.held) S.toggle();
+    if (D.held) D.toggle();
+    if (J.held) J.toggle();
+}

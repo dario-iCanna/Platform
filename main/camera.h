@@ -1,4 +1,8 @@
 #pragma once
-extern struct camera {
+struct camera {
 	int posX;
-}cam;
+	int posY;
+};
+
+
+extern struct camera cam;

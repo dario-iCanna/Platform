@@ -23,8 +23,8 @@ using namespace D2D1;
 
 #pragma region variabili globali
 #define BLOCK_SIZE 32 // grandezza blocco
-int SCREEN_HEIGHT = 775; //altezza schermo
-int SCREEN_WIDTH = 1440; //larghezza schermo
+int SCREEN_HEIGHT = 384; //altezza schermo
+int SCREEN_WIDTH = 512; //larghezza schermo
 int SCREEN_WIDTH_BLOCK = SCREEN_WIDTH / BLOCK_SIZE, SCREEN_HEIGHT_BLOCK = SCREEN_HEIGHT / BLOCK_SIZE; // per vedere la larghezza e altezza in blocks
 int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
 int prova = 0;
@@ -72,7 +72,7 @@ ID2D1Bitmap* buttonsBitmap = NULL;
 
 int ***livello, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
 RECT* playerStartPos;
-int heightSize, *livSize;//altezza livello e lunghezza livello
+int *heightSize, *livSize;//altezza livello e lunghezza livello
 vector<tuple<int, int, int>> cambiamentiLivello;
 
 //posizione nel menù
@@ -217,12 +217,16 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 				switch(menuPage){
 				case 0:
 				{
-					title = "PLATFORM GAME";
+					title = "PLATFORM";
 
-					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 500), 96, 0);
+					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 200), 62, 0);
 
-					x = 620;
-					y = 400;
+					title = "GAME";
+
+					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT-32), 62, 0);
+
+					x = 156;
+					y = 200;
 
 
 					for (int i = 0; i < menuButtons; i++) {
@@ -274,8 +278,8 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 				}
 				case 1:
 
-					x = 620;
-					y = 600;
+					x = 156;
+					y = 220;
 					
 
 					for (int i = 0; i < menuButtons; i++) {
@@ -317,17 +321,15 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						centerString(pRT, title, RectF(x, y + 32 * (i), x + 192, y + 32 * (i + 1)), 32, 0);
 					}
 
-					//si scrive titulo
-					title = "COMO SE JUEGA A STA MERDA";
-					centerString(pRT, title, RectF(0, 0, SCREEN_WIDTH, 500), 32, 0);
-
 					//si other shit
-					title = "W PARA JUMP";
-					centerString(pRT, title, RectF(0, 320, SCREEN_WIDTH, 360), 32, 0);
-					title = "A Y D PARA MOVEMENT";
-					centerString(pRT, title, RectF(0, 360, SCREEN_WIDTH, 400), 32, 0);
-					title = "J PARA SELECIONAR EN MENU";
-					centerString(pRT, title, RectF(0, 400, SCREEN_WIDTH, 440), 32, 0);
+					title = "W: JUMP";
+					centerString(pRT, title, RectF(0, 68, SCREEN_WIDTH, 100), 32, 0);
+					title = "A D: MOVEMENT";
+					centerString(pRT, title, RectF(0, 100, SCREEN_WIDTH, 132), 32, 0);
+					title = "J: OK";
+					centerString(pRT, title, RectF(0, 132, SCREEN_WIDTH, 164), 32, 0);
+					title = "S: ATTACK";
+					centerString(pRT, title, RectF(0, 164, SCREEN_WIDTH, 196), 32, 0);
 					
 					break;
 				}
@@ -354,7 +356,7 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 				// disegno livello FINITO
 				for (int i = floor(cam.posX / BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
-					for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
+					for (int j = floor(cam.posY / BLOCK_CODE); j <= floor(cam.posY / BLOCK_SIZE) + SCREEN_HEIGHT_BLOCK + 1 && j < heightSize[numeroLivello]; j++) {
 						int val = livello[numeroLivello][i][j];//prende il valore totale
 						int cod = (int)floor(val / BLOCK_CODE);//prende il gruppo del blocco
 						int off = val % BLOCK_CODE; // da un offset * 16
@@ -368,12 +370,12 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							xW = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex) + getAnimWidth(coinAnim, coinAnimIndex);
 							yW = getAnimY(coinAnim, coinAnimIndex) + getAnimHeight(coinAnim, coinAnimIndex);
 
-							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE),
+							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
 								1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(x , y, xW, yW) // disegna a seconda dei valori dati il blocco giusto
 							);
 							break;
 						default:
-							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE),
+							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
 								1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
 							);
 							break;
@@ -384,8 +386,6 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 
 				//disegno enttity
 				for (entity e : screenEn) {
-
-				
 						/*hitbox
 					pRT->DrawRectangle(
 						RectF(
@@ -398,9 +398,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							for (int i = 0; i < e.eBlockWidth; i++) {
 								pRT->DrawBitmap(enemyBitmap, RectF(
 									e.r.left - cam.posX + 32 * i,
-									e.r.top,
+									e.r.top - cam.posY,
 									e.r.left - cam.posX + 32 * (i + 1),
-									e.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
+									e.r.bottom - cam.posY), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
 							}
 						else {
 							if (existsAnim(e.animations, e.animIndex)) {
@@ -408,15 +408,12 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 								int width = e.r.right - e.r.left;
 								pRT->DrawBitmap(enemyBitmap, RectF(
 									e.r.left - cam.posX - (BLOCK_SIZE - width) / 2,
-									e.r.top - (BLOCK_SIZE - height) / 2,
+									e.r.top - cam.posY - (BLOCK_SIZE - height) / 2,
 									e.r.right - cam.posX + (BLOCK_SIZE - width) / 2,
-									e.r.bottom + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
+									e.r.bottom - cam.posY + (BLOCK_SIZE - height) / 2), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex), getAnimX(e.animations, e.animIndex) + getAnimWidth(e.animations, e.animIndex) + getAnimWidthByFrame(e.animations, e.animIndex) + e.differentSideAnimation * e.facingLeft * (getAnimSize(e.animations, e.animIndex) * getAnimWidth(e.animations, e.animIndex)), getAnimY(e.animations, e.animIndex) + getAnimHeight(e.animations, e.animIndex)));
 
 							}
 						}
-					
-
-
 				}
 
 				//disegno tempo (fatto il to string/ da stampare)
@@ -473,12 +470,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 					if ((playerBitmap && player.immunity % 2 == 0 )|| notRunning)
 						pRT->DrawBitmap(playerBitmap, RectF(
 							player.r.left - cam.posX - 4,
-							player.r.top,
+							player.r.top - cam.posY,
 							player.r.right - cam.posX + 4,
-							player.r.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex), getAnimX(playerAnim, animIndex) + getAnimWidth(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex) + getAnimHeight(playerAnim, animIndex)));
-
-					
-
+							player.r.bottom - cam.posY), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(getAnimX(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex), getAnimX(playerAnim, animIndex) + getAnimWidth(playerAnim, animIndex) + getAnimWidthByFrame(playerAnim, animIndex) + player.facingLeft * (getAnimSize(playerAnim, animIndex) * getAnimWidth(playerAnim, animIndex)), getAnimY(playerAnim, animIndex) + getAnimHeight(playerAnim, animIndex)));
 					/*pRT->DrawRectangle(
 						RectF(
 							player.r.left - cam.posX,
@@ -498,25 +492,26 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 				//disegno numero livello
 				string livelloS = "LIVELLO:" + to_string(numeroLivello + 1);
 
-				centerString(pRT, livelloS, RectF(0, 0, SCREEN_WIDTH, 500), 96, 1);
+				centerString(pRT, livelloS, RectF(0, 0, SCREEN_WIDTH, 200), 32, 1);
 
 				string startS = "START";
 
-				centerString(pRT, startS, RectF(0, 200, SCREEN_WIDTH, 596), 96, 1);
+				centerString(pRT, startS, RectF(0, 200, SCREEN_WIDTH, 300), 32, 1);
 			}
 			else {
 				pRT->FillRectangle(RectF(clientRect.left, clientRect.top, clientRect.right, clientRect.bottom), terrainBrushes[0]);
 				//disegno messaggio finale 
-				string msg = "HAI SALVATO IL MONDO";
+				string msg = "HAI SALVATO";
 
-				centerString(pRT, msg, RectF(0, -70, SCREEN_WIDTH, SCREEN_HEIGHT), 64, 1);
-				msg = "DAL GIOCO DI MERD";
+				centerString(pRT, msg, RectF(0, -70, SCREEN_WIDTH, SCREEN_HEIGHT), 32, 1);
 
-				centerString(pRT, msg, RectF(0, 70, SCREEN_WIDTH, SCREEN_HEIGHT), 64, 1);
+				msg = "IL MONDO";
+
+				centerString(pRT, msg, RectF(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT), 32, 1); 
 
 				msg = "J TO CONTINUE";
 
-				centerString(pRT, msg, RectF(0, 500, SCREEN_WIDTH, SCREEN_HEIGHT), 32, 1);
+				centerString(pRT, msg, RectF(0, 90, SCREEN_WIDTH, SCREEN_HEIGHT), 32, 1);
 			
 			}
 		}
@@ -615,6 +610,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		cout << "Rilasciti Posizioni Player" << endl;
 
 		// Deallocazione livSize
+		delete[] heightSize;
+		heightSize = NULL;
+
 		delete[] livSize;
 		livSize = NULL;
 
@@ -829,9 +827,11 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	file >> quantitaLivelli; // si fa cin con il file del numero dei livelli
 	//creo array della lunghezza dei livelli
 	livSize = new int[quantitaLivelli];
+	heightSize = new int[quantitaLivelli];
 	playerStartPos = new RECT[quantitaLivelli];
 	for (int i = 0; i < quantitaLivelli; i++) {
 		file >> livSize[i];
+		file >> heightSize[i];
 	}
 
 	//creo la grandezza giusta dell'array dei nemici
@@ -842,11 +842,12 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	for (int i = 0; i < quantitaLivelli; i++) {
 		livello[i] = new int* [livSize[i]];//inizializzazione livello
 		for (int j = 0; j < livSize[i]; j++) {
-			livello[i][j] = new int[SCREEN_HEIGHT_BLOCK];
+			livello[i][j] = new int[heightSize[i]];
 		}
 	}
 
 	//aggiunta di tutti i nemici, rigorosamente in ordine crescente della posizione SERVE PER SISTEMA DI NEMICI SLIDING WINDOW
+	/*
 	addEntity(0, 100, 300, 16, 32, 1, 1, 0, state::jumping, 4, false, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, 0, 0);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], -1, -1, 2);
@@ -935,10 +936,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 16, 16, 16, "walking");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "walking");
 
-	addEntity(0, 760, 300, 20, 32, -1, 1, 0, state::jumping, 0, true, -1, &j);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 400, 1, 0);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 500, 500, 100);
-	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 610, 525, 100);
+	addEntity(0, 760, 300, 20, 32, 0, 0, 0, state::jumping, -1, true, -1, &j);
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 0, 16, 16, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "idle");
@@ -956,7 +954,6 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 
 	addEntity(0, 1500, 100, 20, 32, -1, 1, 0, state::walking, 0, true, -1, nullptr);
 	addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 320, 160, 300);
-	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	entities[numeroLivello][entities[numeroLivello].size() - 1].animIndex = "walking";
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 0, 0, 16, 16, "idle");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "idle");
@@ -984,10 +981,90 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "ascending");
 	newAnimation(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 160, 0, 16, 16, "descending");
 	addFrame(entities[numeroLivello][entities[numeroLivello].size() - 1].animations, 1, "descending");
+	*/
+
+
+addEntity(0, 416, 576, 32, 32, -3.5, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+entities[0][entities[0].size() - 1].animIndex = "walking";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+newAnimation(entities[0][entities[0].size() - 1].animations, 32, 0, 16, 16, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 30, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 30, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 30, "walking");
+newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
+
+entity p = createEntity(0, 0, 10, 32, 32, 0.0, 0.2, 5.0, state::jumping, 4, false, 300, nullptr);
+addActionToEnemy(p, -1, -1, 2);
+p.animIndex = "idle";
+newAnimation(p.animations, 96, 64, 16, 16, "idle");
+addFrame(p.animations, 1, "idle");
+
+entity cuore = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 5.0, state::jumping, 4, false, 100, nullptr);
+addActionToEnemy(cuore, -1, -1, 0);
+cuore.animIndex = "idle";
+newAnimation(cuore.animations, 0, 64, 16, 16, "idle");
+addFrame(cuore.animations, 100, "idle");
+addFrame(cuore.animations, 10, "idle");
+addFrame(cuore.animations, 10, "idle");
+addFrame(cuore.animations, 10, "idle");
+addFrame(cuore.animations, 10, "idle");
+addFrame(cuore.animations, 10, "idle");
+
+
+addEntity(0, 1344, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &p);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+
+addEntity(0, 1344, 480, 32, 32, 1.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+entities[0][entities[0].size() - 1].animIndex = "walking";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+newAnimation(entities[0][entities[0].size() - 1].animations, 32, 0, 16, 16, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
+
+addEntity(0, 1440, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &cuore);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+
+addEntity(0, 1696, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+entities[0][entities[0].size() - 1].animIndex = "walking";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+newAnimation(entities[0][entities[0].size() - 1].animations, 32, 0, 16, 16, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
+
+addEntity(0, 2100, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 3, false, -1, nullptr);
+entities[0][entities[0].size() - 1].animIndex = "walking";
+newAnimation(entities[0][entities[0].size() - 1].animations, 32, 48, 16, 16, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+
+addEntity(0, 2496, 544, 32, 32, 0.0, 0.0, 0.0, state::idle, 6, false, -1, nullptr);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 16, 32, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+
+addEntity(0, 3968, 288, 32, 32, -3.0, 0.2, 0.0, state::walking, 3, false, -1, nullptr);
+entities[0][entities[0].size() - 1].animIndex = "walking";
+newAnimation(entities[0][entities[0].size() - 1].animations, 32, 48, 16, 16, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
+addFrame(entities[0][entities[0].size() - 1].animations, 10, "walking");
 
 	// mettiamo nel livello i numeri dei blocchi
 	for (int f = 0; f < quantitaLivelli; f++) {
-		for (int j = 0; j < SCREEN_HEIGHT_BLOCK; j++) {
+		for (int j = 0; j < heightSize[f]; j++) {
 			for (int i = 0; i < livSize[f]; i++) {
 				file >> livello[f][i][j];
 			}
@@ -995,7 +1072,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	}
 
 	//posizioni del player starting per ogni livello
-	playerStartPos[0] = { 0,448,24,480 };
+	playerStartPos[0] = { 158,576,182,608 };
 	playerStartPos[1] = { 35,300,59,332 };
 	playerStartPos[2] = { 0,448,24,480 };
 
@@ -1171,7 +1248,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 
 							//movimento player
 							try {
-								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello],cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT_BLOCK, ripristina, score, animIndex, playerAnim);
+								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], heightSize[numeroLivello] , cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT, ripristina, score, animIndex, playerAnim);
 							}
 							catch (...) {
 								wS.running = false;

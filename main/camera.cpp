@@ -1,2 +1,2 @@
 #include "camera.h"
-camera cam = { cam.posX = 0 };
+struct camera cam = { 0, 0};
