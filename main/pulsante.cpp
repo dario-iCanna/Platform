@@ -6,6 +6,7 @@ button A = { false, false };
 button S = { false, false };
 button D = { false, false };
 button J = { false, false };
+button Enter = { false, false };
 
 // Implementazione dei metodi
 void button::toggle() {
@@ -30,4 +31,5 @@ void toggleEv() {
     if (S.held) S.toggle();
     if (D.held) D.toggle();
     if (J.held) J.toggle();
+    if (Enter.held) Enter.toggle();
 }

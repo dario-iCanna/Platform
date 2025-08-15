@@ -47,7 +47,10 @@ extern struct entity
 	int movementX;
 	int movementY;
 	int state;//usato per collisioniNshit
-	short type;//0 per normal (uccisione da sopra) 1 per piattaforme mobili 2 per no collision 3 per collision male ovunque 4 per oggetto raccoglibile, (con effetto in action -1) 5 per uccisione dal basso ma no collision overall 6 per trampolino 7 per piattaforma cadente
+	short type;// 0 per normal (uccisione da sopra) 1 per piattaforme mobili 
+	// 2 per no collision 3 per collision male ovunque 4 per oggetto raccoglibile, (con effetto in action -1) 
+	// 5 per uccisione dal basso ma no collision overall 6 per trampolino 7 per piattaforma cadente
+	// 8 per un buco (che trasporta il player nella posizione del child), se non preme S si comporta come un cubo
 	vector<tuple<short, short, short>> actions; //tipo azione (che usa variabili * 100) , tempo per azione (il set iniziale vale per la prima azione) e tempo usato per resettare l'azione.
 	animazione animations;
 	int eBlockWidth;
@@ -63,6 +66,7 @@ extern struct entity
 	bool collisionDestroy;
 	double intermezzoVel;
 	bool elimina;
+	bool deathSpawn;
 };
 
 void printMemoryUsage(const std::string& label);
@@ -78,10 +82,10 @@ enum state{
 };
 
 //metodo movimento del player
-void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, bool& ripristina, int& score, string& animIndex, animazione& playerAnim);
+void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, bool& ripristina, int& score, string& animIndex, animazione& playerAnim, int& notRunning, int&setWaitTime,RECT& ripristinoPos);
 
 //funzione per le animazioni n shit
-void automaticMovement(int**& livello, int livSize, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT_BLOCK, int& score);
+void automaticMovement(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, int& score, vector<entity> screenEn);
 
 //collsione laterare 
 short sideColl(int m);

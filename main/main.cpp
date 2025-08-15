@@ -27,7 +27,6 @@ int SCREEN_HEIGHT = 384; //altezza schermo
 int SCREEN_WIDTH = 512; //larghezza schermo
 int SCREEN_WIDTH_BLOCK = SCREEN_WIDTH / BLOCK_SIZE, SCREEN_HEIGHT_BLOCK = SCREEN_HEIGHT / BLOCK_SIZE; // per vedere la larghezza e altezza in blocks
 int tempo = 0, score = 0; //variabili del tempo e dei punti, scritti in alto a sinistra
-int prova = 0;
 bool ripristina = false;
 bool changeLiv = false; // per aumentare il livello con il ripristina
 
@@ -40,7 +39,7 @@ bool gameOver = true;
 int notRunning = 0;
 
 //variabile per il wait-time
-int waitTime = 0;
+int waitTime = 0, setWaitTime = 0;
 
 short BLOCK_CODE = 100; // la grandezza in decimali del codice usato per i blocchi, ora 100 per poter usare 100 stili diversi per blocco
 // animazione idle del player
@@ -71,7 +70,7 @@ ID2D1Bitmap* enemyBitmap = NULL;
 ID2D1Bitmap* buttonsBitmap = NULL;
 
 int ***livello, numeroLivello = 0, quantitaLivelli = 0;//livelli, livelli salvati per la rigenerazione e il numero del livello da disegnare
-RECT* playerStartPos;
+RECT* playerStartPos, ripristinoPos;
 int *heightSize, *livSize;//altezza livello e lunghezza livello
 vector<tuple<int, int, int>> cambiamentiLivello;
 
@@ -326,9 +325,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 					centerString(pRT, title, RectF(0, 68, SCREEN_WIDTH, 100), 32, 0);
 					title = "A D: MOVEMENT";
 					centerString(pRT, title, RectF(0, 100, SCREEN_WIDTH, 132), 32, 0);
-					title = "J: OK";
+					title = "J: ATTACK";
 					centerString(pRT, title, RectF(0, 132, SCREEN_WIDTH, 164), 32, 0);
-					title = "S: ATTACK";
+					title = "S: USE HOLES";
 					centerString(pRT, title, RectF(0, 164, SCREEN_WIDTH, 196), 32, 0);
 					
 					break;
@@ -352,7 +351,6 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						clientRect.bottom), 1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(0, 0, 1570, 884));
 					break;
 				}
-				
 
 				// disegno livello FINITO
 				for (int i = floor(cam.posX / BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
@@ -362,27 +360,31 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 						int off = val % BLOCK_CODE; // da un offset * 16
 						int x, y, xW, yW;
 
-						//si switcha in base se i blocchi hanno animazione
-						switch (cod) {
-						case 3:
-							x = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex);
-							y = getAnimY(coinAnim, coinAnimIndex);
-							xW = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex) + getAnimWidth(coinAnim, coinAnimIndex);
-							yW = getAnimY(coinAnim, coinAnimIndex) + getAnimHeight(coinAnim, coinAnimIndex);
+						//si disegna dietro se è positivo
+						if (val > 0) {
+							//si switcha in base se i blocchi hanno animazione
+							switch (cod) {
+							case 3:
+								x = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex);
+								y = getAnimY(coinAnim, coinAnimIndex);
+								xW = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex) + getAnimWidth(coinAnim, coinAnimIndex);
+								yW = getAnimY(coinAnim, coinAnimIndex) + getAnimHeight(coinAnim, coinAnimIndex);
 
-							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
-								1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(x , y, xW, yW) // disegna a seconda dei valori dati il blocco giusto
-							);
-							break;
-						default:
-							pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
-								1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
-							);
-							break;
+								pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
+									1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(x, y, xW, yW) // disegna a seconda dei valori dati il blocco giusto
+								);
+								break;
+							default:
+								pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
+									1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
+								);
+								break;
+							}
 						}
+
+						
 					}
 				}
-				prova = 0;
 
 				//disegno enttity
 				for (entity e : screenEn) {
@@ -480,6 +482,43 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 							player.r.right - cam.posX,
 							player.r.bottom),
 						terrainBrushes[3]);*/
+				}
+
+				// disegno livello FINITO AVANTI
+				for (int i = floor(cam.posX / BLOCK_SIZE); i <= floor(cam.posX / BLOCK_SIZE) + SCREEN_WIDTH_BLOCK + 1 && i < livSize[numeroLivello]; i++) {
+					for (int j = floor(cam.posY / BLOCK_CODE); j <= floor(cam.posY / BLOCK_SIZE) + SCREEN_HEIGHT_BLOCK + 1 && j < heightSize[numeroLivello]; j++) {
+						int val = livello[numeroLivello][i][j];//prende il valore totale
+						int cod = (int)floor(val / BLOCK_CODE);//prende il gruppo del blocco
+						int off = val % BLOCK_CODE; // da un offset * 16
+						int x, y, xW, yW;
+
+						//si disegna dietro se è positivo
+						if (val < 0) {
+							off = abs(off);
+							cod = abs(cod);
+							val = abs(val);
+							//si switcha in base se i blocchi hanno animazione
+							switch (cod) {
+							case 3:
+								x = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex);
+								y = getAnimY(coinAnim, coinAnimIndex);
+								xW = getAnimX(coinAnim, coinAnimIndex) + getAnimWidthByFrame(coinAnim, coinAnimIndex) + getAnimWidth(coinAnim, coinAnimIndex);
+								yW = getAnimY(coinAnim, coinAnimIndex) + getAnimHeight(coinAnim, coinAnimIndex);
+
+								pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
+									1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(x, y, xW, yW) // disegna a seconda dei valori dati il blocco giusto
+								);
+								break;
+							default:
+								pRT->DrawBitmap(terrainBitmap, RectF(i * BLOCK_SIZE - cam.posX, j * BLOCK_SIZE - cam.posY, (i + 1) * BLOCK_SIZE - cam.posX, (j + 1) * BLOCK_SIZE - cam.posY),
+									1, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR, RectF(16 * off, 16 * (cod), 16 * (off + 1), 16 * (cod + 1)) // disegna a seconda dei valori dati il blocco giusto
+								);
+								break;
+							}
+						}
+
+
+					}
 				}
 				
 
@@ -647,6 +686,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		case 'J':
 			J.toggle();
 			break;
+		case VK_RETURN:
+			Enter.toggle();
+			break;
 		}
 		break;
 	case WM_KEYUP:
@@ -666,6 +708,9 @@ LRESULT Wndproc(HWND hwnd,UINT uInt,WPARAM wParam,LPARAM lParam)
 		case 'J':
 			J.release();
 			break;
+		case VK_RETURN:
+			Enter.release();
+			break;
 		}
 		break;
 	}
@@ -683,7 +728,7 @@ void createBitmap(const wchar_t* file, ID2D1Bitmap** bitmap) {
 	pRT->CreateBitmapFromWicBitmap(wicConverter, NULL, bitmap);// crea la bitmap direct2d
 }
 
-entity createEntity(int levelNum, int x, int y, int width, int height, double vel, double jmpDec, double jmpPow, int baseState, short type, bool differentSideAnim,int timeAlive, entity* child) {
+entity createEntity(int levelNum, int x, int y, int width, int height, double vel, double jmpDec, double jmpPow, int baseState, short type, bool differentSideAnim,int timeAlive, entity* child, bool deathSpawn) {
 	vector<tuple<short, short, short>> actions;
 	actions = {};
 	return {
@@ -702,10 +747,10 @@ entity createEntity(int levelNum, int x, int y, int width, int height, double ve
 		"",
 		differentSideAnim,
 		timeAlive,
-		child,0,0,0,0,0 };
+		child,0,0,0,0,0, deathSpawn };
 }
 
-void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim, int timeAlive, entity* child) {
+void addEntity(int levelNum, int x, int y,int width, int height, double vel, double jmpDec, double jmpPow,int baseState, short type, bool differentSideAnim, int timeAlive, entity* child, bool deathSpawn) {
 
 	vector<tuple<short, short, short>> actions;
 	actions = {};
@@ -725,7 +770,7 @@ void addEntity(int levelNum, int x, int y,int width, int height, double vel, dou
 		"",
 		differentSideAnim,
 		timeAlive,
-		child,0,0,0,0,0
+		child,0,0,0,0,0, deathSpawn
 		});
 }
 
@@ -984,7 +1029,7 @@ static int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR p
 	*/
 
 
-addEntity(0, 416, 576, 32, 32, -3.5, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+addEntity(0, 416, 576, 32, 32, -3.5, 0.2, 0.0, state::walking, 0, true, -1, nullptr,false);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
@@ -997,13 +1042,13 @@ addFrame(entities[0][entities[0].size() - 1].animations, 1, "ascending");
 newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
 
-entity p = createEntity(0, 0, 10, 32, 32, 0.0, 0.2, 5.0, state::jumping, 4, false, 300, nullptr);
+entity p = createEntity(0, 0, 10, 32, 32, 0.0, 0.2, 5.0, state::jumping, 4, false, 300, nullptr,false);
 addActionToEnemy(p, -1, -1, 2);
 p.animIndex = "idle";
 newAnimation(p.animations, 96, 64, 16, 16, "idle");
 addFrame(p.animations, 1, "idle");
 
-entity cuore = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 5.0, state::jumping, 4, false, -1, nullptr);
+entity cuore = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 5.0, state::jumping, 4, false, -1, nullptr,false);
 addActionToEnemy(cuore, -1, -1, 0);
 cuore.animIndex = "idle";
 newAnimation(cuore.animations, 0, 64, 16, 16, "idle");
@@ -1014,27 +1059,33 @@ addFrame(cuore.animations, 10, "idle");
 addFrame(cuore.animations, 10, "idle");
 addFrame(cuore.animations, 10, "idle");
 
-entity palla = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 10.0, state::jumping, 3, true, -1, nullptr);
+entity palla = createEntity(0, 0, 10, 32, 32, 2.0, 0.2, 10.0, state::jumping, 3, true, -1, nullptr,false);
 palla.animIndex = "walking";
 newAnimation(palla.animations, 32, 48, 16, 16, "walking");
 addFrame(palla.animations, 20, "walking");
 addFrame(palla.animations, 20, "walking");
 addFrame(palla.animations, 20, "walking");
 
-addEntity(0, 1200, 400, 32, 32, 0.0, 0.0, 0.0, state::idle, 2, true, -1, &cuore);
-addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 207, 120, 120);
-addActionToEnemy(entities[0][entities[0].size() - 1], 700, 0, 0);
-entities[0][entities[0].size() - 1].animIndex = "idle";
-newAnimation(entities[0][entities[0].size() - 1].animations, 12*16, 0, 16, 16, "idle");
-addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
-addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
+entity dummy = createEntity(0, 3000, 10, 32, 32, 2.0, 0.2, 10.0, state::jumping, 3, true, -1, nullptr, false);// serve solo per la posizione
 
-addEntity(0, 1344, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &p);
+addEntity(0, 1312, 384, 64, 32, 0.0, 0.0, 0.0, state::idle, 8, false, -1, nullptr, false);
 entities[0][entities[0].size() - 1].animIndex = "idle";
 newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
 
-addEntity(0, 1344, 480, 32, 32, 1.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+addEntity(0, 1312, 384, 64, 32, 0.0, 0.0, 0.0, state::idle, 2, false, -1, &palla, false);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 220, 120, 120);
+addActionToEnemy(entities[0][entities[0].size() - 1], 700, 0, 0);
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+
+addEntity(0, 1328, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 8, false, -1, &dummy, false);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+
+addEntity(0, 1344, 480, 32, 32, 1.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr, true);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
@@ -1047,12 +1098,19 @@ addFrame(entities[0][entities[0].size() - 1].animations, 1, "ascending");
 newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
 
-addEntity(0, 1440, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &cuore);
+addEntity(0, 1376, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &p,true);
 entities[0][entities[0].size() - 1].animIndex = "idle";
 newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
 
-addEntity(0, 1696, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr);
+
+
+addEntity(0, 1440, 384, 32, 32, 0.0, 0.0, 0.0, state::idle, 5, false, -1, &cuore,true);
+entities[0][entities[0].size() - 1].animIndex = "idle";
+newAnimation(entities[0][entities[0].size() - 1].animations, 0, 32, 16, 16, "idle");
+addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
+
+addEntity(0, 1696, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 0, true, -1, nullptr, false);
 addActionToEnemy(entities[0][entities[0].size() - 1], 307, 260, -1);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 0, 0, 16, 16, "idle");
@@ -1066,19 +1124,19 @@ addFrame(entities[0][entities[0].size() - 1].animations, 1, "ascending");
 newAnimation(entities[0][entities[0].size() - 1].animations, 160, 0, 16, 16, "descending");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "descending");
 
-addEntity(0, 2100, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 3, true, -1, nullptr);
+addEntity(0, 2100, 544, 32, 32, 3.0, 0.2, 0.0, state::walking, 3, true, -1, nullptr, false);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 32, 48, 16, 16, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 
-addEntity(0, 2496, 544, 32, 32, 0.0, 0.0, 0.0, state::idle, 6, false, -1, nullptr);
+addEntity(0, 2496, 544, 32, 32, 0.0, 0.0, 0.0, state::idle, 6, false, -1, nullptr,false);
 entities[0][entities[0].size() - 1].animIndex = "idle";
 newAnimation(entities[0][entities[0].size() - 1].animations, 16, 32, 16, 16, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 1, "idle");
 
-addEntity(0, 3800, 400, 32, 32, -4.0, 0.0, 0.0, state::idle, 2, true, -1, &palla);
+addEntity(0, 3800, 400, 32, 32, -4.0, 0.0, 0.0, state::idle, 2, true, -1, &palla, false);
 addActionToEnemy(entities[numeroLivello][entities[numeroLivello].size() - 1], 220, 120, 120);
 addActionToEnemy(entities[0][entities[0].size() - 1], 700, 0, 0);
 entities[0][entities[0].size() - 1].animIndex = "idle";
@@ -1086,7 +1144,7 @@ newAnimation(entities[0][entities[0].size() - 1].animations, 16 * 16, 0, 16, 16,
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
 addFrame(entities[0][entities[0].size() - 1].animations, 10, "idle");
 
-addEntity(0, 3968, 288, 32, 32, -3.0, 0.2, 0.0, state::walking, 3, true, -1, nullptr);
+addEntity(0, 3968, 288, 32, 32, -3.0, 0.2, 0.0, state::walking, 3, true, -1, nullptr, false);
 entities[0][entities[0].size() - 1].animIndex = "walking";
 newAnimation(entities[0][entities[0].size() - 1].animations, 32, 48, 16, 16, "walking");
 addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
@@ -1186,7 +1244,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 						menuPos--;
 						//PlayAudio(L"./sfx/buttonChange.wav", suonoBuffer, 0, 1);
 					}
-					if (J.pressed && numeroLivello != quantitaLivelli) {
+					if (Enter.pressed && numeroLivello != quantitaLivelli) {
 
 						//si decide cosa fare in base alla pagina del menù E alla posizione nel menù
 
@@ -1242,7 +1300,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 
 							}*/
 							//pausa menu riprendere
-							if (J.pressed) {
+							if (Enter.pressed) {
 								gameOver = true;
 								//StopAudio(music);
 								ripristino(screenEn,limit, livello[numeroLivello], cambiamentiLivello, playerStartPos[numeroLivello]);
@@ -1285,7 +1343,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 
 							//movimento player
 							try {
-								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], heightSize[numeroLivello] , cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT, ripristina, score, animIndex, playerAnim);
+								movimentoPlayer(livello[numeroLivello], livSize[numeroLivello], heightSize[numeroLivello] , cambiamentiLivello, entities[numeroLivello], screenEn, limit, BLOCK_SIZE, SCREEN_WIDTH, SCREEN_HEIGHT, ripristina, score, animIndex, playerAnim, notRunning, setWaitTime, ripristinoPos);
 							}
 							catch (...) {
 								wS.running = false;
@@ -1299,6 +1357,11 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 								player.vel = 1;
 								notRunning = 120;
 								ripristina = true;
+								ripristinoPos = { 0,0,0,0 };
+								if(numeroLivello == quantitaLivelli - 1)
+									setWaitTime = 1;
+								else
+									setWaitTime = 60;
 							}
 
 							//controllo se le vite sono a zero
@@ -1306,6 +1369,8 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 								animIndex = "death";
 								notRunning = 120;
 								ripristina = true;
+								ripristinoPos = { 0,0,0,0 };
+								setWaitTime = 60;
 							}
 
 						}
@@ -1314,7 +1379,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 						notRunning--;
 
 						//animazione di molto provvisoria per l'uscita dalla fine del livello (metodo per il movimento del player con le collisioni del cazzo)
-						automaticMovement(livello[numeroLivello], livSize[numeroLivello], limit, BLOCK_SIZE, SCREEN_WIDTH,SCREEN_HEIGHT_BLOCK, score);
+						automaticMovement(livello[numeroLivello], livSize[numeroLivello], heightSize[numeroLivello], cambiamentiLivello, limit, BLOCK_SIZE, SCREEN_WIDTH,SCREEN_HEIGHT, score, screenEn);
 						
 
 						//funzione da fare quando finisce il tempo nel quale il gioco è fermo
@@ -1331,7 +1396,12 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 								changeLiv = false;
 							}
 							if (ripristina && numeroLivello < quantitaLivelli) {
-								ripristino(screenEn,limit, livello[numeroLivello], cambiamentiLivello, playerStartPos[numeroLivello]);
+								RECT zeroRect = { 0, 0, 0, 0 };
+								if (memcmp(&ripristinoPos, &zeroRect, sizeof(RECT)) == 0) {
+									// tutti zero
+									ripristinoPos = playerStartPos[numeroLivello];
+								}
+								ripristino(screenEn,limit, livello[numeroLivello], cambiamentiLivello, ripristinoPos);
 								score = 0;
 								tempo = 0;
 								ripristina = false;
@@ -1341,10 +1411,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 
 							}
 							notRunning = 0;
-							if (numeroLivello < quantitaLivelli)
-								waitTime = 60;
-							else
-								waitTime = 1;
+							waitTime = setWaitTime;
 						}
 					}
 					//animazioni player che si possono fare anche quando il gioco è fermo 
@@ -1411,7 +1478,7 @@ addFrame(entities[0][entities[0].size() - 1].animations, 20, "walking");
 				if (numeroLivello < quantitaLivelli) {
 					waitTime--;
 				}
-				else if (J.pressed) {
+				else if (Enter.pressed) {
 					waitTime = 0;
 					numeroLivello = 0;
 					menuPage = 0;

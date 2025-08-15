@@ -15,6 +15,7 @@ extern button A;
 extern button S;
 extern button D;
 extern button J;
+extern button Enter;
 
 // Funzione di aggiornamento globale
 void toggleEv();
