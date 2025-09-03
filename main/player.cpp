@@ -55,7 +55,7 @@ void addActionToEnemy(entity& e, short actionType, short firstAction, short acti
 }
 
 //gestione movimento del player 
-void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, bool& ripristina, int& score, string& animIndex, animazione& playerAnim, int& notRunning, int& setWaitTime, RECT& ripristinoPos)
+void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, vector<entity>& en, vector<entity>& screenEn, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, bool& ripristina, int& score, string& animIndex, animazione& playerAnim, int& notRunning, int& setWaitTime, RECT& ripristinoPos, double& ripristinoVel, double& ripristinoJmpPow)
 {
 	int x, y;
 	
@@ -291,6 +291,11 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 		}
 		for (int i = 0; i < screenEn.size(); i++) {
 			entity& e = screenEn[i];
+			e.stop = false;
+		}
+
+		for (int i = 0; i < screenEn.size(); i++) {
+			entity& e = screenEn[i];
 
 			if (e.r.right + e.movementX <= 0) {
 				e.elimina = true;
@@ -338,6 +343,11 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 					screenEn.erase(screenEn.begin() + i);//funzione per eliminare in maniera ordinata
 					i--;
 					break;
+				}
+				//fermata salto nemico
+				if (e.stop) {
+					e.state = state::walking;
+					e.jmpPow = 0;
 				}
 			}	
 		}
@@ -501,12 +511,36 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 							player.vel = 0;
 
 						}
-						else if (S.pressed && e.child != nullptr && player.r.left > e.r.left && player.r.right < e.r.right) {
+						else if (S.pressed && e.child != nullptr && player.r.left > e.r.left && player.r.right < e.r.right && player.r.bottom < e.r.bottom && e.child->type == 0) {//si usa il type del figlio dummy per capire da dove viene il teleporto
 							//TELEPORTO
 							notRunning = 60;
 							player.vel = 0;
 							ripristina = true;
 							ripristinoPos = { e.child->r.left , e.child->r.top, e.child->r.left + 24 , e.child->r.top + 32 };
+							ripristinoVel = e.child->vel;
+							ripristinoJmpPow = e.child->jmpPow;
+							setWaitTime = 0;
+							return;
+						}
+						else if (A.held && e.child != nullptr && player.r.top >= e.r.top && player.r.bottom <= e.r.bottom && player.r.left > e.r.left && e.child->type == 1) {
+							//TELEPORTO
+							notRunning = 60;
+							player.vel = -2;
+							ripristina = true;
+							ripristinoPos = { e.child->r.left , e.child->r.top, e.child->r.left + 24 , e.child->r.top + 32 };
+							ripristinoVel = e.child->vel;
+							ripristinoJmpPow = e.child->jmpPow;
+							setWaitTime = 0;
+							return;
+						}
+						else if (D.held && e.child != nullptr && player.r.top >= e.r.top && player.r.bottom <= e.r.bottom && player.r.right < e.r.right && e.child->type == 2) {
+							//TELEPORTO
+							notRunning = 60;
+							player.vel = 2;
+							ripristina = true;
+							ripristinoPos = { e.child->r.left , e.child->r.top, e.child->r.left + 24 , e.child->r.top + 32 };
+							ripristinoVel = e.child->vel;
+							ripristinoJmpPow = e.child->jmpPow;
 							setWaitTime = 0;
 							return;
 						}
@@ -744,7 +778,9 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 					break;
 				case 3:
 					ice = true;
-					player.dec = 0.001;//si cambia la dec sul ghiaccio
+					player.dec = 0.03;//si cambia la dec sul ghiaccio
+					player.initialAcc = 0.5;//si cambia la initial sul ghiaccio
+					player.velMax = 7;//si cambia la max sul ghiaccio
 					if ((player.r.bottom / BLOCK_SIZE < (player.r.bottom - movementY) / BLOCK_SIZE || player.r.bottom == ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE)) {
 						movementY = player.r.bottom - ((player.r.bottom - movementY) / BLOCK_SIZE) * BLOCK_SIZE;
 
@@ -762,8 +798,12 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 				}
 		}
 
-		if (!ice)
+		//si levano gli effetti del ghiaccio
+		if (!ice) {
 			player.dec = 0.2;
+			player.initialAcc = 1;
+			player.velMax = 5;
+		}
 	}
 
 	//collisioni a destra e sinistra
@@ -890,7 +930,8 @@ void movimentoPlayer(int**& livello, int livSize, int heightSize, vector<tuple<i
 //funzione per le animazioni del cazzo, gli do dei valori delle diverse cose e lui me le fa
 void automaticMovement(int**& livello, int livSize, int heightSize, vector<tuple<int, int, int>>& changeLiv, int& size, int BLOCK_SIZE, int SCREEN_WIDTH, int SCREEN_HEIGHT, int& score, vector<entity> screenEn) {
 	int x, y;
-	discesa = true;
+	if(!(player.r.right > livSize * BLOCK_SIZE))
+		discesa = true;
 
 	if (player.vel > 0)
 		player.facingLeft = false;
@@ -1223,6 +1264,7 @@ void automaticMovement(int**& livello, int livSize, int heightSize, vector<tuple
 		}
 
 
+
 	//movimento player effettivo
 	{
 		player.r.left += movementX;
@@ -1231,6 +1273,39 @@ void automaticMovement(int**& livello, int livSize, int heightSize, vector<tuple
 		player.r.bottom -= movementY;
 		movementX = 0;
 		movementY = 0;
+	}
+
+	//spostamento cam.posX
+	if (player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX > SCREEN_WIDTH / 2 && cam.posX + SCREEN_WIDTH < (livSize)*BLOCK_SIZE) {
+		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH / 2;
+		if (cam.posY + SCREEN_WIDTH > livSize * BLOCK_SIZE) {
+			cam.posY = livSize * BLOCK_SIZE - SCREEN_WIDTH;
+		}
+	}
+	// spostamento cam.posX a sinistra
+	if (player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX < SCREEN_WIDTH / 2 && cam.posX > 0) {
+		cam.posX += player.r.left + ((player.r.right - player.r.left) / 2) - cam.posX - SCREEN_WIDTH / 2;
+		if (cam.posX < 0)
+			cam.posX = 0;
+	}
+
+
+	//spostamento cam.posY verso Basso
+	if (player.r.top + ((player.r.bottom - player.r.top) / 2) - cam.posY > SCREEN_HEIGHT / 2 && cam.posY + SCREEN_HEIGHT < (heightSize)*BLOCK_SIZE) {
+		cam.posY += player.r.top + ((player.r.bottom - player.r.top) / 2) - cam.posY - SCREEN_HEIGHT / 2;
+		if (cam.posY + SCREEN_HEIGHT > heightSize * BLOCK_SIZE) {
+			cam.posY = heightSize * BLOCK_SIZE - SCREEN_HEIGHT;
+		}
+	}
+	// Spostamento verso l'alto
+	else if (player.r.top + ((player.r.bottom - player.r.top) / 2) - cam.posY < SCREEN_HEIGHT / 2 &&
+		cam.posY > 0) {
+
+		cam.posY += player.r.top + ((player.r.bottom - player.r.top) / 2) - cam.posY - SCREEN_HEIGHT / 2;
+
+		if (cam.posY < 0) {
+			cam.posY = 0;
+		}
 	}
 
 	if (discesa) {
@@ -1273,8 +1348,8 @@ short topColl(int m) {
 	}
 }
 
-void ripristino(vector<entity>& screenEn, int& limit, int**& livello, vector<tuple<int, int, int>>& cambiamentiLivello, RECT pos){
-	ripristinoPlayer(pos);
+void ripristino(vector<entity>& screenEn, int& limit, int**& livello, vector<tuple<int, int, int>>& cambiamentiLivello, RECT pos, double vel, double jmpPow){
+	ripristinoPlayer(pos,vel,jmpPow);
 
 	//si mette la life a 1, !NUOVA SCELTA!
 	player.life = 1;
@@ -1296,10 +1371,10 @@ void ripristino(vector<entity>& screenEn, int& limit, int**& livello, vector<tup
 }
 
 //ripristino player 
-void ripristinoPlayer(RECT pos) {
+void ripristinoPlayer(RECT pos,double vel,double jmpPow) {
 	player.r = pos;
-	player.vel = 0;
-	player.jmpPow = 0;
+	player.vel = vel;
+	player.jmpPow = jmpPow;
 	player.state = state::idle;
 	player.life = player.maxLife;
 	player.immunity = player.initialImmunity;
@@ -1331,7 +1406,6 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 		}
 	}
 
-	e.stop = false;
 	e.collisionDestroy = false;
 	int increase = 0;
 	e.movementX = e.vel;
@@ -1558,6 +1632,7 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 
 	}
 
+
 	//collisioni IntraNemici
 	for (entity& c : entities) {
 		if (e.type == c.type && c.r.top == e.r.top && c.r.bottom == e.r.bottom && c.r.left == e.r.left && c.r.right == e.r.right) {
@@ -1566,7 +1641,7 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 		}
 
 		//funziona ma non so se gasa
-		if (e.r.top <= c.r.bottom - c.movementY && e.r.bottom >= c.r.top - c.movementY && e.r.left + e.movementX <= c.r.right + c.movementX && e.r.right + e.movementX >= c.r.left + c.movementX) {
+		if (e.r.top - e.movementY <= c.r.bottom - c.movementY && e.r.bottom - e.movementY >= c.r.top - c.movementY && e.r.left + e.movementX <= c.r.right + c.movementX && e.r.right + e.movementX >= c.r.left + c.movementX) {
 
 			if (e.type == -1 && e.vel != 0) {
 				switch (c.type) {
@@ -1593,15 +1668,16 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 
 			//collsione in basso
 			if (e.r.bottom <= c.r.top - c.movementY) {
-				if (c.type != 4) { //si leva il 4 che non deve fare collisioni
+				if (c.type != 4 && e.type != 1) { //si leva il 4 che non deve fare collisioni
 					e.movementY = e.r.bottom - (c.r.top - c.movementY);
 					e.stop = true;
 					e.movementX += c.movementX;
 				}
 			}
 
+
 			//collisione in alto
-			if (c.r.bottom <= e.r.top) {
+			if (c.r.bottom <= e.r.top - e.movementY) {
 				if (e.type != 4) { //si leva il 4 che non deve fare collisioni
 					c.movementY = c.r.bottom - (e.r.top - e.movementY);
 					c.stop = true;
@@ -1610,7 +1686,7 @@ void movimentoEntità(int** livello, int livSize,int heightSize, int BLOCK_SIZE, 
 			}
 
 			//collisione a destra (I POWERUPS non fanno la collisione aa lato)
-			if (e.type != 4 && c.type != 4) {
+			if (e.type != 4 && c.type != 4 && e.type != 1 && c.type != 1) {
 				if (e.r.right < c.r.left && e.r.bottom != c.r.top && c.r.bottom != e.r.top) {
 					//si trova la metà del punto di incontro
 					int val = ((e.r.right + e.movementX) - (c.r.left + c.movementX)) / 2;
